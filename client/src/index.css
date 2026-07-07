@@ -1,0 +1,291 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-bg text-text font-body antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+
+  /* Custom scrollbar — never pure white. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0d0f14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a3142;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a4258;
+  }
+
+  /* Autofill should not turn inputs white. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #e8eaf0;
+    -webkit-box-shadow: 0 0 0px 1000px #1e2330 inset;
+    caret-color: #e8eaf0;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+@layer components {
+  .input-base {
+    @apply w-full rounded-xl bg-surface-2 border border-border px-4 py-3 text-text placeholder:text-text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/30;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-text transition hover:bg-primary/90 hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-transparent px-5 py-3 font-semibold text-text transition hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .card-base {
+    @apply rounded-2xl border border-border bg-surface shadow-lg shadow-black/40;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-3 py-1 text-xs font-medium text-text-muted;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Site-wide animated background — GPU-only.
+ *
+ * Performance rules followed here:
+ *  - Only the active scene (+ the one fading out) is ever mounted (see App.jsx).
+ *  - Patterns drift via `transform: translate3d` (composited) instead of
+ *    `background-position` (which repaints the whole viewport every frame).
+ *  - Pattern elements are oversized (-inset-20 in JSX) so the looping translate
+ *    never reveals an edge.
+ *  - Heavy blur is minimized; aurora orbs blur a *static* fill then only
+ *    translate, so their blur is computed once, not per frame.
+ * ------------------------------------------------------------------------- */
+
+/* Aurora orbs: translate only (blur is baked once). */
+@keyframes aurora1 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(48px, 36px, 0);
+  }
+}
+@keyframes aurora2 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-56px, 44px, 0);
+  }
+}
+@keyframes aurora3 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(36px, -44px, 0);
+  }
+}
+
+.animate-aurora-1 {
+  animation: aurora1 18s ease-in-out infinite;
+}
+.animate-aurora-2 {
+  animation: aurora2 24s ease-in-out infinite;
+}
+.animate-aurora-3 {
+  animation: aurora3 28s ease-in-out infinite;
+}
+
+/* Sweeping light lines (transform + opacity only). */
+@keyframes lineSweepX {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+  }
+}
+@keyframes lineSweepY {
+  0% {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0;
+  }
+}
+.animate-sweep-x {
+  animation: lineSweepX 12s ease-in-out infinite;
+}
+.animate-sweep-y {
+  animation: lineSweepY 15s ease-in-out infinite;
+}
+
+/* Cross-fade for incoming scene. */
+@keyframes sceneIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-scene-in {
+  animation: sceneIn 900ms ease-in-out both;
+}
+
+/* --- Distinct, GPU-drifted scene patterns --- */
+
+.fx-grid {
+  background-image: linear-gradient(#2a3142 1px, transparent 1px),
+    linear-gradient(90deg, #2a3142 1px, transparent 1px);
+  background-size: 64px 64px;
+  will-change: transform;
+  animation: driftGrid 18s linear infinite;
+  -webkit-mask-image: radial-gradient(
+    ellipse 85% 75% at 50% 30%,
+    #000 5%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse 85% 75% at 50% 30%,
+    #000 5%,
+    transparent 80%
+  );
+}
+@keyframes driftGrid {
+  to {
+    transform: translate3d(-64px, -64px, 0);
+  }
+}
+
+.fx-dots {
+  background-image: radial-gradient(#3a4566 1.6px, transparent 1.7px);
+  background-size: 32px 32px;
+  will-change: transform;
+  animation: driftDots 22s linear infinite;
+}
+@keyframes driftDots {
+  to {
+    transform: translate3d(64px, 64px, 0);
+  }
+}
+
+.fx-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #36406055 0,
+    #36406055 1.5px,
+    transparent 1.5px,
+    transparent 26px
+  );
+  will-change: transform;
+  animation: driftDiagonal 16s linear infinite;
+}
+/* 36.77 ≈ 26 * √2 → two stripe periods, seamless loop. */
+@keyframes driftDiagonal {
+  to {
+    transform: translate3d(36.77px, -36.77px, 0);
+  }
+}
+
+.fx-beams {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 78px,
+    #6c63ff33 78px,
+    #6c63ff33 80px
+  );
+  will-change: transform;
+  animation: driftBeams 13s linear infinite;
+}
+@keyframes driftBeams {
+  to {
+    transform: translate3d(-80px, 0, 0);
+  }
+}
+
+/* Conic glow: rotate a once-blurred layer (cheap), smaller blur radius. */
+.fx-conic {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #6c63ff55 60deg,
+    transparent 140deg,
+    #00d4aa55 240deg,
+    transparent 320deg
+  );
+  filter: blur(32px);
+  will-change: transform;
+  animation: spinSlow 46s linear infinite;
+}
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-grid,
+  .fx-dots,
+  .fx-diagonal,
+  .fx-beams,
+  .fx-conic,
+  .animate-aurora-1,
+  .animate-aurora-2,
+  .animate-aurora-3,
+  .animate-sweep-x,
+  .animate-sweep-y,
+  .animate-scene-in {
+    animation: none !important;
+  }
+}
