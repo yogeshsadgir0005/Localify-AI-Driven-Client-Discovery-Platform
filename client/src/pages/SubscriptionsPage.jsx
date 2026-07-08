@@ -128,6 +128,7 @@ const SubscriptionsPage = () => {
         },
         theme: {
           color: '#3B82F6',
+          backdrop_color: 'transparent',
         },
       };
 
