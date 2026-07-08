@@ -41,34 +41,35 @@ const getPageItems = (page, total) => {
   return items;
 };
 
-const LockedBusinessCard = ({ index }) => {
+const LockedResultsBanner = ({ plan }) => {
   const navigate = useNavigate();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
       onClick={() => navigate('/subscriptions')}
-      className="card-base group relative flex cursor-pointer flex-col overflow-hidden"
+      className="col-span-full card-base group relative mt-4 flex cursor-pointer flex-col overflow-hidden bg-surface-2 p-8 text-center"
     >
-      <div className="absolute inset-0 z-10 grid place-items-center bg-bg/40 backdrop-blur-sm transition group-hover:bg-bg/50">
-        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4 text-center shadow-lg ring-1 ring-border">
-          <Lock className="h-6 w-6 text-accent" />
-          <span className="text-sm font-semibold text-text">Unlock to view</span>
+      <div className="absolute inset-0 z-10 grid place-items-center bg-bg/50 backdrop-blur-md transition group-hover:bg-bg/40">
+        <div className="flex max-w-sm flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center shadow-xl ring-1 ring-border">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-accent/10">
+            <Lock className="h-6 w-6 text-accent" />
+          </div>
+          <h3 className="font-display text-lg font-bold text-text">Unlock more results</h3>
+          <p className="text-sm text-text-muted">
+            You are currently on the {plan} plan. Upgrade to view all search results and access premium features.
+          </p>
+          <span className="mt-2 inline-flex items-center text-sm font-semibold text-accent group-hover:underline">
+            View Plans & Pricing
+          </span>
         </div>
       </div>
-
-      <div className="flex flex-1 flex-col p-5 opacity-40">
-        <div className="mb-3 flex items-start justify-between gap-4">
-          <div className="h-6 w-3/4 rounded-md bg-surface-2" />
-          <div className="h-6 w-16 shrink-0 rounded-full bg-surface-2" />
-        </div>
-        <div className="space-y-3">
-          <div className="h-4 w-full rounded bg-surface-2" />
-          <div className="h-4 w-5/6 rounded bg-surface-2" />
-          <div className="h-4 w-1/2 rounded bg-surface-2" />
-        </div>
-        <div className="mt-6 h-10 w-full rounded-lg bg-surface-2" />
+      
+      {/* Blurred background mock content */}
+      <div className="flex flex-col gap-4 opacity-30 blur-sm pointer-events-none" aria-hidden="true">
+        <div className="h-8 w-1/3 rounded-lg bg-border" />
+        <div className="h-4 w-1/2 rounded bg-border" />
+        <div className="h-4 w-1/4 rounded bg-border" />
       </div>
     </motion.div>
   );
@@ -291,8 +292,7 @@ const SearchPage = () => {
           <>
             <div ref={resultsTopRef} className="mb-4 scroll-mt-24 text-sm text-text-muted">
               Showing {(page - 1) * pageSize + 1}–
-              {Math.min(page * pageSize, totalFiltered)} of {totalFiltered}{' '}
-              business{totalFiltered === 1 ? '' : 'es'}
+              {Math.min(page * pageSize, totalFiltered)} of {meta.total || totalFiltered} fetched businesses
             </div>
             <motion.div
               layout={!reduce}
@@ -303,9 +303,7 @@ const SearchPage = () => {
               ))}
               
               {meta.hasLockedResults && page === totalPages && (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <LockedBusinessCard key={`locked-${i}`} index={i} />
-                ))
+                <LockedResultsBanner plan={user?.plan || 'Free'} />
               )}
             </motion.div>
 

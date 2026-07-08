@@ -59,7 +59,7 @@ const PLANS = [
 const SubscriptionsPage = () => {
   const { user, mutate } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState(null);
   const [error, setError] = useState('');
 
   const loadRazorpay = () => {
@@ -75,23 +75,41 @@ const SubscriptionsPage = () => {
   const handleUpgrade = async (planId) => {
     if (planId === 'free' || planId === user?.plan) return;
     
-    setLoading(true);
+    setLoadingPlanId(planId);
     setError('');
     
     try {
-      const res = await loadRazorpay();
-      if (!res) {
-        setError('Failed to load Razorpay SDK. Check your connection.');
-        setLoading(false);
-        return;
-      }
-
       // Create Order on our backend
       const { data: orderData } = await api.post('/subscriptions/create-order', { plan: planId });
 
       if (!orderData.success) {
         setError(orderData.message || 'Failed to create order');
-        setLoading(false);
+        setLoadingPlanId(null);
+        return;
+      }
+
+      if (orderData.isMock) {
+        // Bypass Razorpay frontend SDK
+        toast.success('Mock Mode: Simulating payment...');
+        const verifyRes = await api.post('/subscriptions/verify-payment', {
+          razorpay_order_id: orderData.orderId,
+          razorpay_payment_id: 'mock_payment_id',
+          razorpay_signature: 'mock_signature',
+          plan: planId
+        });
+
+        if (verifyRes.data.success) {
+          await mutate();
+          toast.success(verifyRes.data.message);
+          navigate('/search');
+        }
+        return;
+      }
+
+      const res = await loadRazorpay();
+      if (!res) {
+        setError('Failed to load Razorpay SDK. Check your connection.');
+        setLoadingPlanId(null);
         return;
       }
 
@@ -114,6 +132,7 @@ const SubscriptionsPage = () => {
 
             if (verifyRes.data.success) {
               await mutate(); // Refresh user state
+              toast.success(verifyRes.data.message);
               navigate('/search');
             }
           } catch (err) {
@@ -138,7 +157,7 @@ const SubscriptionsPage = () => {
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong.');
     } finally {
-      setLoading(false);
+      setLoadingPlanId(null);
     }
   };
 
@@ -211,7 +230,7 @@ const SubscriptionsPage = () => {
                 <button
                   type="button"
                   onClick={() => handleUpgrade(plan.id)}
-                  disabled={isCurrent || loading || (plan.id === 'free' && user?.plan !== 'free')}
+                  disabled={isCurrent || loadingPlanId === plan.id || (plan.id === 'free' && user?.plan !== 'free')}
                   className={`mt-auto w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background ${
                     isCurrent
                       ? 'cursor-not-allowed bg-surface-2 text-text-muted'
@@ -222,7 +241,7 @@ const SubscriptionsPage = () => {
                       : 'bg-primary text-white hover:bg-primary/90 focus:ring-primary'
                   }`}
                 >
-                  {loading && !isCurrent ? (
+                  {loadingPlanId === plan.id && !isCurrent ? (
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   ) : isCurrent ? (
                     'Current Plan'

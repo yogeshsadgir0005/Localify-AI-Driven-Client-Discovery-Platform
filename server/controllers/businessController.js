@@ -92,8 +92,8 @@ const isInCity = (place, city) => {
 /** Build the API response payload for a result set (cached or fresh). */
 const buildSearchPayload = (results, extra = {}) => ({
   success: true,
-  total: results.length,
-  noWebsiteCount: results.filter((b) => !b.website).length,
+  total: extra.total ?? results.length,
+  noWebsiteCount: extra.noWebsiteCount ?? results.filter((b) => !b.website).length,
   results,
   emailNote: 'Email discovery via web scraping is not available in free tier.',
   ...extra,
@@ -155,6 +155,7 @@ const searchBusinesses = async (req, res, next) => {
           district,
           state,
           total: cached.results.length, // keep true total
+          noWebsiteCount: cached.results.filter((b) => !b.website).length,
           hasLockedResults: cached.results.length > resultLimit,
         })
       );
@@ -284,6 +285,7 @@ const searchBusinesses = async (req, res, next) => {
         district,
         state,
         total: enriched.length, // keep true total
+        noWebsiteCount: enriched.filter((b) => !b.website).length,
         hasLockedResults: enriched.length > resultLimit,
       })
     );

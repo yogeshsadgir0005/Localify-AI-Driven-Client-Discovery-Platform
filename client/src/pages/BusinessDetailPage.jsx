@@ -21,10 +21,12 @@ import {
   Camera,
   Quote,
   Gauge,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
 import { categoryOf } from '../hooks/useBusinessSearch';
+import { useAuth } from '../hooks/useAuth';
 import api, { getErrorMessage } from '../utils/axios';
 
 const API_BASE =
@@ -124,6 +126,8 @@ const BusinessDetailPage = () => {
   const { placeId } = useParams();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
+  const { user } = useAuth();
+  const isFreePlan = !user || user.plan === 'free';
 
   const [business, setBusiness] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | success | error | notfound
@@ -549,15 +553,27 @@ const BusinessDetailPage = () => {
                     summary and sentiment on quality, value, service and
                     reliability.
                   </p>
-                  <motion.button
-                    whileTap={reduce ? undefined : { scale: 0.96 }}
-                    type="button"
-                    onClick={generateInsights}
-                    className="btn-primary"
-                  >
-                    <Gauge className="h-4 w-4" />
-                    Analyze reviews
-                  </motion.button>
+                  {isFreePlan ? (
+                    <motion.button
+                      whileTap={reduce ? undefined : { scale: 0.96 }}
+                      type="button"
+                      onClick={() => navigate('/subscriptions')}
+                      className="btn-primary"
+                    >
+                      <Lock className="mr-2 h-4 w-4" />
+                      Upgrade to Pro to analyze
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      whileTap={reduce ? undefined : { scale: 0.96 }}
+                      type="button"
+                      onClick={generateInsights}
+                      className="btn-primary"
+                    >
+                      <Gauge className="h-4 w-4" />
+                      Analyze reviews
+                    </motion.button>
+                  )}
                 </div>
               )}
 
@@ -672,15 +688,27 @@ const BusinessDetailPage = () => {
                 <p className="text-sm text-text-muted">
                   Generate a friendly summary of this business, written by our AI.
                 </p>
-                <motion.button
-                  whileTap={reduce ? undefined : { scale: 0.96 }}
-                  type="button"
-                  onClick={generateSummary}
-                  className="btn-primary"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Generate Summary
-                </motion.button>
+                {isFreePlan ? (
+                  <motion.button
+                    whileTap={reduce ? undefined : { scale: 0.96 }}
+                    type="button"
+                    onClick={() => navigate('/subscriptions')}
+                    className="btn-primary"
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Upgrade to Pro to generate
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    whileTap={reduce ? undefined : { scale: 0.96 }}
+                    type="button"
+                    onClick={generateSummary}
+                    className="btn-primary"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Generate Summary
+                  </motion.button>
+                )}
               </div>
             )}
 
@@ -727,15 +755,27 @@ const BusinessDetailPage = () => {
             </p>
 
             {!drafts && !outreachLoading && (
-              <motion.button
-                whileTap={reduce ? undefined : { scale: 0.96 }}
-                type="button"
-                onClick={generateOutreach}
-                className="btn-primary"
-              >
-                <Sparkles className="h-4 w-4" />
-                Generate message
-              </motion.button>
+              isFreePlan ? (
+                <motion.button
+                  whileTap={reduce ? undefined : { scale: 0.96 }}
+                  type="button"
+                  onClick={() => navigate('/subscriptions')}
+                  className="btn-primary"
+                >
+                  <Lock className="mr-2 h-4 w-4" />
+                  Upgrade to Pro to pitch
+                </motion.button>
+              ) : (
+                <motion.button
+                  whileTap={reduce ? undefined : { scale: 0.96 }}
+                  type="button"
+                  onClick={generateOutreach}
+                  className="btn-primary"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Generate message
+                </motion.button>
+              )
             )}
 
             {outreachLoading && (
