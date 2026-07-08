@@ -23,12 +23,15 @@ import {
   Gauge,
   Lock,
   EyeOff,
+  LayoutTemplate,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
 import { categoryOf } from '../hooks/useBusinessSearch';
 import { useAuth } from '../hooks/useAuth';
 import api, { getErrorMessage } from '../utils/axios';
+import WebsiteSurveyModal from '../components/WebsiteSurveyModal';
+import TopUpCreditsModal from '../components/TopUpCreditsModal';
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
@@ -153,6 +156,18 @@ const BusinessDetailPage = () => {
   const [lang, setLang] = useState('english');
   const [copied, setCopied] = useState(false);
 
+  const [showWebsiteSurvey, setShowWebsiteSurvey] = useState(false);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [generatingWebsite, setGeneratingWebsite] = useState(false);
+  const [websiteExists, setWebsiteExists] = useState(false);
+
+  const planLimit = user?.plan === 'max' ? 9 : user?.plan === 'pro' ? 3 : 0;
+
+  const handleGenerateWebsite = (surveyData) => {
+    setShowWebsiteSurvey(false);
+    navigate(`/business/${placeId}/generate-website`, { state: { survey: surveyData } });
+  };
+
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -162,6 +177,14 @@ const BusinessDetailPage = () => {
         const { data } = await api.get(`/business/${placeId}`);
         if (!active) return;
         setBusiness(data.business);
+        
+        try {
+          await api.get(`/website/${placeId}`);
+          if (active) setWebsiteExists(true);
+        } catch (e) {
+          // Ignore 404
+        }
+        
         setStatus('success');
       } catch (err) {
         if (!active) return;
@@ -592,6 +615,43 @@ const BusinessDetailPage = () => {
             />
           </div>
 
+          {/* AI Website Generator Card */}
+          <div className="card-base p-6 sm:p-8 border-primary/20 bg-gradient-to-br from-surface to-primary/5">
+            <div className="mb-4 flex items-center gap-2">
+              <LayoutTemplate className="h-6 w-6 text-primary" />
+              <h2 className="font-display text-xl font-semibold text-text">
+                AI Website Builder
+              </h2>
+            </div>
+            <p className="text-sm text-text-muted mb-6">
+              Generate a stunning, full-featured website for this business in 30 seconds using our state-of-the-art AI. It will use real Google Reviews and adapt to their brand.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => {
+                  if (!user) return toast.error('Please login to generate a website.');
+                  setShowWebsiteSurvey(true);
+                }}
+                disabled={generatingWebsite}
+                className="btn-primary flex items-center justify-center gap-2 flex-1 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+                <LayoutTemplate className="h-5 w-5 relative z-10" />
+                <span className="relative z-10">{generatingWebsite ? 'Generating...' : (websiteExists ? 'Re-Generate Website' : 'Generate AI Website')}</span>
+              </button>
+
+              {websiteExists && (
+                <button
+                  onClick={() => navigate(`/business/website/${placeId}`)}
+                  className="btn-ghost flex items-center justify-center gap-2 text-primary flex-1 border border-primary/20 hover:bg-primary/10"
+                >
+                  <Globe2 className="h-5 w-5" />
+                  View Built Website
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Review insights — AI aspect-sentiment chips from Google reviews */}
           {reviews.length > 0 && (
             <div className="card-base p-6 sm:p-8">
@@ -930,6 +990,24 @@ const BusinessDetailPage = () => {
           </div>
         </motion.div>
       </section>
+
+      {showWebsiteSurvey && (
+        <WebsiteSurveyModal
+          isOpen={true}
+          onClose={() => setShowWebsiteSurvey(false)}
+          onGenerate={handleGenerateWebsite}
+          onTopUp={() => {
+            setShowWebsiteSurvey(false);
+            setShowTopUp(true);
+          }}
+          user={user}
+          planLimit={planLimit}
+          business={business}
+        />
+      )}
+      {showTopUp && (
+        <TopUpCreditsModal onClose={() => setShowTopUp(false)} />
+      )}
     </Layout>
   );
 };

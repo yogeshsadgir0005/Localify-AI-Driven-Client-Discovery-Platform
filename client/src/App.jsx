@@ -20,6 +20,8 @@ const SignupPage = lazy(() => import('./pages/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const BusinessDetailPage = lazy(() => import('./pages/BusinessDetailPage'));
+const GeneratedWebsitePage = lazy(() => import('./pages/GeneratedWebsitePage'));
+const WebsiteGeneratorPage = lazy(() => import('./pages/WebsiteGeneratorPage'));
 
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ModerationPage = lazy(() => import('./pages/ModerationPage'));
@@ -333,6 +335,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/business/website/:placeId"
+              element={
+                <ProtectedRoute requireAuth={true}>
+                  <GeneratedWebsitePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/business/:placeId/generate-website"
+              element={
+                <ProtectedRoute requireAuth={true}>
+                  <WebsiteGeneratorPage />
                 </ProtectedRoute>
               }
             />

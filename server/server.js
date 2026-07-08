@@ -22,6 +22,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const moderationRoutes = require('./routes/moderationRoutes');
+const websiteRoutes = require('./routes/websiteRoutes');
 const dns = require('dns');
 dns.setServers(["1.1.1.1","8.8.8.8"]);
 const app = express();
@@ -84,6 +85,18 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/website', websiteRoutes);
+
+// --- Serve Frontend in Production ---
+if (isProd) {
+  const path = require('path');
+  const clientBuildPath = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientBuildPath));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
 
 // --- 404 + error handling ---
 app.use(notFound);
@@ -98,6 +111,9 @@ const start = async () => {
       isProd ? 'production' : 'development'
     })`);
   });
+  
+  // Increase timeout to 5 minutes to prevent connection drops during long AI generations
+  server.setTimeout(300000);
 };
 
 // --- Graceful shutdown ---
@@ -147,6 +163,6 @@ module.exports = app;
 
 // Trigger nodemon restart 7
 
-// Trigger nodemon restart 8
+// Trigger nodemon restart 8 
 
 // Trigger nodemon restart 9

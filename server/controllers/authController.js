@@ -558,7 +558,8 @@ const updateAddress = async (req, res, next) => {
     if (plan === 'pro') limit = 10;
     if (plan === 'max') limit = Infinity;
 
-    if (user.locationChanges.count >= limit) {
+    const isAdmin = user.roles && user.roles.includes('admin');
+    if (!isAdmin && user.locationChanges.count >= limit) {
       return res.status(403).json({
         success: false,
         message: `You have reached your limit of ${limit} location changes per week on the ${plan} plan.`,
@@ -785,8 +786,9 @@ const unhidePhone = async (req, res, next) => {
       return res.json({ success: true, remaining: 3 - user.phoneUnhides.unlockedPlaceIds.length });
     }
 
-    // Check limit (max 3)
-    if (user.phoneUnhides.unlockedPlaceIds.length >= 3) {
+    // Check limit (max 3), bypass if admin
+    const isAdmin = user.roles && user.roles.includes('admin');
+    if (!isAdmin && user.phoneUnhides.unlockedPlaceIds.length >= 3) {
       return res.status(403).json({
         success: false,
         message: 'You have reached your limit of 3 contact unhides for this week. Please upgrade to Pro.',

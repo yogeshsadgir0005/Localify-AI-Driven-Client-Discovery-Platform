@@ -83,6 +83,12 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: null },
     phoneVerified: { type: Boolean, default: false },
     preferredLanguage: { type: String, default: 'en' },
+    // AI Website Generation Quota
+    aiQuota: {
+      usage: { type: Number, default: 0 },
+      extraCredits: { type: Number, default: 0 },
+      resetAt: { type: Date, default: null },
+    },
     // DPDP consent ledger — see consentSchema above.
     consents: { type: [consentSchema], default: [] },
     // Standing searches for future match alerts.
@@ -206,6 +212,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     subscriptionExpiry: this.subscriptionExpiry,
     locationChanges: this.locationChanges,
     phoneUnhides: this.phoneUnhides,
+    aiQuota: this.aiQuota,
     roles: this.roles && this.roles.length ? this.roles : ['buyer'],
     phone: this.phone || null,
     phoneVerified: !!this.phoneVerified,
