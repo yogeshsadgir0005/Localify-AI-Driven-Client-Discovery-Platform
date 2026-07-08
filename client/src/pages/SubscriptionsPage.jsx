@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../layout/Layout';
 import useAuth from '../hooks/useAuth';
 import api from '../utils/axios';
+import toast from 'react-hot-toast';
 
 const PLANS = [
   {
