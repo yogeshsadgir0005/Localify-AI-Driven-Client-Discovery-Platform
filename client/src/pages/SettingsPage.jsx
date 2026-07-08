@@ -11,15 +11,14 @@ import {
   Trash2,
   ShieldCheck,
   Send,
-  MapPin,
   Pencil,
-  ChevronDown,
   Globe,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
 import api, { getErrorMessage } from '../utils/axios';
 import { useAuth } from '../hooks/useAuth';
+import SearchableSelect from '../components/SearchableSelect';
 import {
   COUNTRIES,
   getStates,
@@ -87,6 +86,12 @@ const LocationSection = () => {
   const cities = useMemo(
     () => getCities(selectedCountry, selectedState),
     [selectedCountry, selectedState]
+  );
+
+  // Convert cities array to { value, label } format for SearchableSelect
+  const cityOptions = useMemo(
+    () => cities.map((c) => ({ value: c, label: c })),
+    [cities]
   );
 
   // Reset state when country changes
@@ -176,24 +181,18 @@ const LocationSection = () => {
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           {/* Country */}
           <div>
-            <label htmlFor="settings-country" className="mb-1.5 block text-sm text-text">
+            <label className="mb-1.5 block text-sm text-text">
               Country
             </label>
-            <div className="relative">
-              <select
-                id="settings-country"
-                className="input-base appearance-none pr-10"
-                {...register('country')}
-              >
-                <option value="">Select a country…</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-5 w-5 text-text-muted" />
-            </div>
+            <SearchableSelect
+              id="settings-country"
+              options={COUNTRIES}
+              value={selectedCountry}
+              onChange={(val) => {
+                setValue('country', val, { shouldValidate: true });
+              }}
+              placeholder="Select a country…"
+            />
             {errors.country && (
               <p className="mt-1.5 text-xs text-error">{errors.country.message}</p>
             )}
@@ -201,55 +200,39 @@ const LocationSection = () => {
 
           {/* State / Region */}
           <div>
-            <label htmlFor="settings-state" className="mb-1.5 block text-sm text-text">
+            <label className="mb-1.5 block text-sm text-text">
               State / Region
             </label>
-            <div className="relative">
-              <select
-                id="settings-state"
-                disabled={!selectedCountry}
-                className="input-base appearance-none pr-10 disabled:cursor-not-allowed disabled:opacity-60"
-                {...register('state')}
-              >
-                <option value="">
-                  {selectedCountry ? 'Select a state / region…' : 'Select a country first'}
-                </option>
-                {states.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-5 w-5 text-text-muted" />
-            </div>
+            <SearchableSelect
+              id="settings-state"
+              options={states}
+              value={selectedState}
+              onChange={(val) => {
+                setValue('state', val, { shouldValidate: true });
+              }}
+              placeholder={selectedCountry ? 'Select a state / region…' : 'Select a country first'}
+              disabled={!selectedCountry}
+            />
             {errors.state && (
               <p className="mt-1.5 text-xs text-error">{errors.state.message}</p>
             )}
           </div>
 
-          {/* District / City (dropdown) */}
+          {/* District / City (searchable dropdown) */}
           <div>
-            <label htmlFor="settings-district" className="mb-1.5 block text-sm text-text">
+            <label className="mb-1.5 block text-sm text-text">
               District / City
             </label>
-            <div className="relative">
-              <select
-                id="settings-district"
-                disabled={!selectedState}
-                className="input-base appearance-none pr-10 disabled:cursor-not-allowed disabled:opacity-60"
-                {...register('district')}
-              >
-                <option value="">
-                  {selectedState ? 'Select a district / city…' : 'Select a state first'}
-                </option>
-                {cities.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-5 w-5 text-text-muted" />
-            </div>
+            <SearchableSelect
+              id="settings-district"
+              options={cityOptions}
+              value={currentDistrict}
+              onChange={(val) => {
+                setValue('district', val, { shouldValidate: true });
+              }}
+              placeholder={selectedState ? 'Select a district / city…' : 'Select a state first'}
+              disabled={!selectedState}
+            />
             {errors.district && (
               <p className="mt-1.5 text-xs text-error">{errors.district.message}</p>
             )}
