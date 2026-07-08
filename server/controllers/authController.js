@@ -389,16 +389,44 @@ const updateAddress = async (req, res, next) => {
         .json({ success: false, message: 'User not found.' });
     }
 
+    const now = new Date();
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+    // Initialize tracking if missing
+    if (!user.locationChanges || !user.locationChanges.resetAt) {
+      user.locationChanges = { count: 0, resetAt: now };
+    }
+
+    // Reset counter if a week has passed
+    if (now - user.locationChanges.resetAt > ONE_WEEK) {
+      user.locationChanges.count = 0;
+      user.locationChanges.resetAt = now;
+    }
+
+    // Check limits
+    const plan = user.plan || 'free';
+    let limit = 3;
+    if (plan === 'pro') limit = 10;
+    if (plan === 'max') limit = Infinity;
+
+    if (user.locationChanges.count >= limit) {
+      return res.status(403).json({
+        success: false,
+        message: `You have reached your limit of ${limit} location changes per week on the ${plan} plan.`,
+      });
+    }
+
     user.address = {
       country: (country || 'IN').trim(),
       state: state.trim(),
       district: district.trim(),
       city: (city || '').trim(),
     };
+    user.locationChanges.count += 1;
     await user.save();
 
     logEvent(req, 'update_address', {
-      meta: { country: user.address.country, state: user.address.state, district: user.address.district },
+      meta: { country: user.address.country, state: user.address.state, district: user.address.district, count: user.locationChanges.count },
     });
 
     return res.json({

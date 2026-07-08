@@ -1,5 +1,6 @@
 const NodeCache = require('node-cache');
 const SearchCache = require('../models/SearchCache');
+const User = require('../models/User');
 const { logEvent } = require('../utils/telemetry');
 const {
   GoogleMapsError,
@@ -129,20 +130,32 @@ const searchBusinesses = async (req, res, next) => {
       expiresAt: { $gt: new Date() },
     }).lean();
 
+    // Determine user plan limit
+    const user = await User.findById(req.user.id).select('plan');
+    const plan = user?.plan || 'free';
+    let resultLimit = 6;
+    if (plan === 'pro') resultLimit = 60;
+    if (plan === 'max') resultLimit = Infinity;
+
     if (cached) {
       logEvent(req, 'search', {
         target: cacheKey,
         meta: { city, district, state, total: cached.results.length, cached: true },
       });
       res.set('Cache-Control', 'public, max-age=3600');
+      
+      const slicedResults = cached.results.slice(0, resultLimit);
+      
       return res.json(
-        buildSearchPayload(cached.results, {
+        buildSearchPayload(slicedResults, {
           cached: true,
           fetchedAt: cached.fetchedAt,
           country,
           city,
           district,
           state,
+          total: cached.results.length, // keep true total
+          hasLockedResults: cached.results.length > resultLimit,
         })
       );
     }
@@ -259,14 +272,19 @@ const searchBusinesses = async (req, res, next) => {
       target: cacheKey,
       meta: { city, district, state, total: enriched.length, cached: false },
     });
+    const slicedEnriched = enriched.slice(0, resultLimit);
+
     res.set('Cache-Control', 'public, max-age=3600');
     return res.json(
-      buildSearchPayload(enriched, {
+      buildSearchPayload(slicedEnriched, {
         cached: false,
         fetchedAt,
+        country,
         city,
         district,
         state,
+        total: enriched.length, // keep true total
+        hasLockedResults: enriched.length > resultLimit,
       })
     );
   } catch (err) {

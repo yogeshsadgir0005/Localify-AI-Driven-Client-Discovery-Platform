@@ -26,6 +26,7 @@ const ModerationPage = lazy(() => import('./pages/ModerationPage'));
 const ProfileDetailPage = lazy(() => import('./pages/ProfileDetailPage'));
 const RequirementsPage = lazy(() => import('./pages/RequirementsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'));
 
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -349,6 +350,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subscriptions"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionsPage />
                 </ProtectedRoute>
               }
             />

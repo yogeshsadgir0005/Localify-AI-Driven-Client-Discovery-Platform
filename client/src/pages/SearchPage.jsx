@@ -12,6 +12,7 @@ import {
   Globe2,
   ChevronLeft,
   ChevronRight,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
@@ -38,6 +39,39 @@ const getPageItems = (page, total) => {
     prev = p;
   }
   return items;
+};
+
+const LockedBusinessCard = ({ index }) => {
+  const navigate = useNavigate();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      onClick={() => navigate('/subscriptions')}
+      className="card-base group relative flex cursor-pointer flex-col overflow-hidden"
+    >
+      <div className="absolute inset-0 z-10 grid place-items-center bg-bg/40 backdrop-blur-sm transition group-hover:bg-bg/50">
+        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4 text-center shadow-lg ring-1 ring-border">
+          <Lock className="h-6 w-6 text-accent" />
+          <span className="text-sm font-semibold text-text">Unlock to view</span>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col p-5 opacity-40">
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div className="h-6 w-3/4 rounded-md bg-surface-2" />
+          <div className="h-6 w-16 shrink-0 rounded-full bg-surface-2" />
+        </div>
+        <div className="space-y-3">
+          <div className="h-4 w-full rounded bg-surface-2" />
+          <div className="h-4 w-5/6 rounded bg-surface-2" />
+          <div className="h-4 w-1/2 rounded bg-surface-2" />
+        </div>
+        <div className="mt-6 h-10 w-full rounded-lg bg-surface-2" />
+      </div>
+    </motion.div>
+  );
 };
 
 const SearchPage = () => {
@@ -267,6 +301,12 @@ const SearchPage = () => {
               {results.map((b, i) => (
                 <BusinessCard key={b.placeId} business={b} index={i} />
               ))}
+              
+              {meta.hasLockedResults && page === totalPages && (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <LockedBusinessCard key={`locked-${i}`} index={i} />
+                ))
+              )}
             </motion.div>
 
             {totalPages > 1 && (

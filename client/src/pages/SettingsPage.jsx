@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -149,6 +150,12 @@ const LocationSection = () => {
     user?.address?.country
   );
 
+  const plan = user?.plan || 'free';
+  const limit = plan === 'max' ? Infinity : plan === 'pro' ? 10 : 3;
+  const count = user?.locationChanges?.count || 0;
+  const remaining = Math.max(0, limit - count);
+  const limitReached = count >= limit;
+
   return (
     <div className="card-base p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -158,6 +165,21 @@ const LocationSection = () => {
       <p className="mb-4 text-sm text-text-muted">
         We use this to find businesses around you — worldwide.
       </p>
+
+      {plan !== 'max' && (
+        <div className={`mb-6 rounded-lg border p-3 text-sm ${limitReached ? 'border-red-500/30 bg-red-500/10 text-red-500' : 'border-border bg-surface-2 text-text-muted'}`}>
+          <div className="flex items-center justify-between">
+            <span>
+              {limitReached 
+                ? 'You have reached your weekly location change limit.'
+                : `You can change your location ${remaining} more time${remaining === 1 ? '' : 's'} this week.`}
+            </span>
+            <Link to="/subscriptions" className="font-semibold text-accent hover:underline">
+              Upgrade
+            </Link>
+          </div>
+        </div>
+      )}
 
       {hasAddress && !editing ? (
         <div className="space-y-4">
@@ -267,13 +289,13 @@ const LocationSection = () => {
               </button>
             )}
             <motion.button
-              whileTap={reduce ? undefined : { scale: 0.96 }}
+              whileTap={reduce || limitReached ? undefined : { scale: 0.96 }}
               type="submit"
-              disabled={isSubmitting}
-              className="btn-primary flex-1"
+              disabled={isSubmitting || limitReached}
+              className={`flex-1 ${limitReached ? 'btn-disabled bg-surface-2 text-text-muted cursor-not-allowed py-2 px-4 rounded-xl' : 'btn-primary'}`}
             >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'Saving…' : 'Save location'}
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />}
+              {isSubmitting ? 'Saving…' : limitReached ? 'Limit Reached' : 'Save location'}
             </motion.button>
           </div>
         </form>

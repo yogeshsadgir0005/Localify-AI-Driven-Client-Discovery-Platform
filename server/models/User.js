@@ -112,9 +112,22 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
-    lastLogin: {
+    plan: {
+      type: String,
+      enum: ['free', 'pro', 'max'],
+      default: 'free',
+    },
+    subscriptionExpiry: {
       type: Date,
       default: null,
+    },
+    locationChanges: {
+      count: { type: Number, default: 0 },
+      resetAt: { type: Date, default: Date.now },
+    },
+    lastLogin: {
+      type: Date,
+      default: Date.now,
     },
   },
   { timestamps: true }
@@ -171,6 +184,9 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     email: this.email,
     avatar: this.avatar || '',
     address: this.address || { country: 'IN', state: '', district: '', city: '' },
+    plan: this.plan,
+    subscriptionExpiry: this.subscriptionExpiry,
+    locationChanges: this.locationChanges,
     roles: this.roles && this.roles.length ? this.roles : ['buyer'],
     phone: this.phone || null,
     phoneVerified: !!this.phoneVerified,

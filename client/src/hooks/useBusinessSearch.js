@@ -126,6 +126,8 @@ export const useBusinessSearch = (address) => {
         cached: Boolean(data.cached),
         fetchedAt: data.fetchedAt || null,
         message: data.message || '',
+        total: typeof data.total === 'number' ? data.total : data.results?.length || 0,
+        hasLockedResults: Boolean(data.hasLockedResults),
         noWebsiteCount:
           typeof data.noWebsiteCount === 'number' ? data.noWebsiteCount : 0,
       });

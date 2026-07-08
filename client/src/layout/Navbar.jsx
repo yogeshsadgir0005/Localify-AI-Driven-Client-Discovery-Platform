@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Menu, X, MapPin, LogOut, Search, Bell, ShieldCheck, Settings, FileText } from 'lucide-react';
+import { Menu, X, MapPin, LogOut, Search, Bell, ShieldCheck, Settings, FileText, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import NotificationBell from '../components/NotificationBell';
@@ -60,6 +60,19 @@ const Navbar = () => {
                       <motion.span
                         layoutId="nav-underline"
                         className="absolute -bottom-2 h-0.5 w-full rounded-full bg-primary"
+                      />
+                    )}
+                  </span>
+                )}
+              </NavLink>
+              <NavLink to="/subscriptions" className={navLinkClass}>
+                {({ isActive }) => (
+                  <span className="relative inline-flex flex-col items-center text-accent">
+                    Pricing
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-underline"
+                        className="absolute -bottom-2 h-0.5 w-full rounded-full bg-accent"
                       />
                     )}
                   </span>
@@ -146,6 +159,13 @@ const Navbar = () => {
                     className="btn-ghost justify-start"
                   >
                     <Settings className="h-4 w-4" /> Settings
+                  </Link>
+                  <Link
+                    to="/subscriptions"
+                    onClick={() => setOpen(false)}
+                    className="btn-ghost justify-start text-accent"
+                  >
+                    <Sparkles className="h-4 w-4" /> Pricing
                   </Link>
                   {isAdmin && (
                     <Link
