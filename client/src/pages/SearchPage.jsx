@@ -123,7 +123,7 @@ const SearchPage = () => {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/address-setup')}
+            onClick={() => navigate('/settings')}
             className="btn-ghost self-start px-4 py-2 text-sm sm:self-auto"
           >
             <MapPin className="h-4 w-4" />
