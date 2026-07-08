@@ -23,8 +23,13 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid plan selected' });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      console.warn('Razorpay keys missing in environment variables. Using MOCK mode.');
+    const keyId = process.env.RAZORPAY_KEY_ID || '';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+    const isPlaceholder = (val) => !val || val === 'dummy_key' || val === 'dummy_secret' || val.includes('your_') || val.includes('placeholder');
+
+    if (isPlaceholder(keyId) || isPlaceholder(keySecret)) {
+      console.warn('Razorpay keys missing or are placeholders. Using MOCK mode.');
       return res.json({
         success: true,
         orderId: `mock_order_${Date.now()}`,
@@ -55,7 +60,9 @@ exports.createOrder = async (req, res, next) => {
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    next(err);
+    console.error('Razorpay Error:', err);
+    const errorMsg = err.error ? err.error.description : err.message;
+    return res.status(500).json({ success: false, message: `Razorpay Error: ${errorMsg}` });
   }
 };
 
