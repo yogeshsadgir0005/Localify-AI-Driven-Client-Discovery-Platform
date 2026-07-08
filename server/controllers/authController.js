@@ -373,7 +373,7 @@ const resetPassword = async (req, res, next) => {
  */
 const updateAddress = async (req, res, next) => {
   try {
-    const { state, district, city } = req.body || {};
+    const { country, state, district, city } = req.body || {};
 
     if (!state || !district || !city || !city.trim()) {
       return res.status(422).json({
@@ -390,6 +390,7 @@ const updateAddress = async (req, res, next) => {
     }
 
     user.address = {
+      country: (country || 'IN').trim(),
       state: state.trim(),
       district: district.trim(),
       city: city.trim(),
@@ -397,7 +398,7 @@ const updateAddress = async (req, res, next) => {
     await user.save();
 
     logEvent(req, 'update_address', {
-      meta: { state: user.address.state, district: user.address.district },
+      meta: { country: user.address.country, state: user.address.state, district: user.address.district },
     });
 
     return res.json({

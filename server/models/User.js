@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const addressSchema = new mongoose.Schema(
   {
+    country: { type: String, default: 'IN' },
     state: { type: String, default: '' },
     district: { type: String, default: '' },
     city: { type: String, default: '' },
@@ -169,7 +170,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     name: this.name,
     email: this.email,
     avatar: this.avatar || '',
-    address: this.address || { state: '', district: '', city: '' },
+    address: this.address || { country: 'IN', state: '', district: '', city: '' },
     roles: this.roles && this.roles.length ? this.roles : ['buyer'],
     phone: this.phone || null,
     phoneVerified: !!this.phoneVerified,

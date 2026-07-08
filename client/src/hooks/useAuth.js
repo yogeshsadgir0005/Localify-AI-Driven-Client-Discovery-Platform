@@ -93,7 +93,7 @@ export const useAuth = () => {
   }, [logoutStore]);
 
   const hasAddress = Boolean(
-    user?.address?.state && user?.address?.district && user?.address?.city
+    user?.address?.country && user?.address?.state && user?.address?.district && user?.address?.city
   );
 
   return {

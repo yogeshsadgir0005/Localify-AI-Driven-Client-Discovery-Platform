@@ -14,12 +14,19 @@ import {
   MapPin,
   Pencil,
   ChevronDown,
+  Globe,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
 import api, { getErrorMessage } from '../utils/axios';
 import { useAuth } from '../hooks/useAuth';
-import { STATES, getDistricts, getStateLabel } from '../utils/india';
+import {
+  COUNTRIES,
+  getStates,
+  getCities,
+  getCountryLabel,
+  getStateLabelSmart,
+} from '../utils/locations';
 
 const GRIEVANCE_KINDS = [
   { value: 'data_access', label: 'Access my data' },
@@ -29,8 +36,9 @@ const GRIEVANCE_KINDS = [
 ];
 
 const addressSchema = z.object({
-  state: z.string().min(1, 'Select your state'),
-  district: z.string().min(1, 'Select your district'),
+  country: z.string().min(1, 'Select your country'),
+  state: z.string().min(1, 'Select your state / region'),
+  district: z.string().min(1, 'Select or enter your district / city'),
   city: z.string().trim().min(2, 'Enter your city or town'),
 });
 
@@ -46,7 +54,7 @@ const Toggle = ({ on, onClick }) => (
 );
 
 /* -----------------------------------------------------------------------
- * LocationSection — address management moved from AddressSetupPage
+ * LocationSection — global address management
  * --------------------------------------------------------------------- */
 const LocationSection = () => {
   const reduce = useReducedMotion();
@@ -64,24 +72,49 @@ const LocationSection = () => {
     resolver: zodResolver(addressSchema),
     mode: 'onTouched',
     defaultValues: {
+      country: user?.address?.country || '',
       state: user?.address?.state || '',
       district: user?.address?.district || '',
       city: user?.address?.city || '',
     },
   });
 
+  const selectedCountry = watch('country');
   const selectedState = watch('state');
-  const districts = useMemo(() => getDistricts(selectedState), [selectedState]);
 
+  // Cascading data
+  const states = useMemo(() => getStates(selectedCountry), [selectedCountry]);
+  const cities = useMemo(
+    () => getCities(selectedCountry, selectedState),
+    [selectedCountry, selectedState]
+  );
+
+  // Reset state when country changes
+  const currentState = watch('state');
+  useEffect(() => {
+    if (selectedCountry && currentState) {
+      const stateExists = states.some((s) => s.value === currentState);
+      if (!stateExists) {
+        setValue('state', '');
+        setValue('district', '');
+      }
+    }
+  }, [selectedCountry, currentState, states, setValue]);
+
+  // Reset district when state changes
   const currentDistrict = watch('district');
   useEffect(() => {
-    if (selectedState && currentDistrict && !districts.includes(currentDistrict)) {
-      setValue('district', '');
+    if (selectedState && currentDistrict) {
+      const cityExists = cities.includes(currentDistrict);
+      if (!cityExists) {
+        setValue('district', '');
+      }
     }
-  }, [selectedState, currentDistrict, districts, setValue]);
+  }, [selectedState, currentDistrict, cities, setValue]);
 
   const onSubmit = async (values) => {
     const res = await saveAddress({
+      country: values.country,
       state: values.state,
       district: values.district,
       city: values.city,
@@ -95,8 +128,8 @@ const LocationSection = () => {
   };
 
   const handleEdit = () => {
-    // Reset form with current user address values when entering edit mode
     reset({
+      country: user?.address?.country || '',
       state: user?.address?.state || '',
       district: user?.address?.district || '',
       city: user?.address?.city || '',
@@ -104,14 +137,21 @@ const LocationSection = () => {
     setEditing(true);
   };
 
+  // Display helpers for saved address
+  const displayCountry = getCountryLabel(user?.address?.country);
+  const displayState = getStateLabelSmart(
+    user?.address?.state,
+    user?.address?.country
+  );
+
   return (
     <div className="card-base p-5">
       <div className="mb-3 flex items-center gap-2">
-        <MapPin className="h-5 w-5 text-primary" />
+        <Globe className="h-5 w-5 text-primary" />
         <h2 className="font-display text-lg font-semibold text-text">Your location</h2>
       </div>
       <p className="mb-4 text-sm text-text-muted">
-        We use this to find local businesses around you.
+        We use this to find businesses around you — worldwide.
       </p>
 
       {hasAddress && !editing ? (
@@ -122,7 +162,10 @@ const LocationSection = () => {
               {user.address.city}
             </div>
             <div className="text-sm text-text-muted">
-              {user.address.district}, {getStateLabel(user.address.state)}
+              {user.address.district}, {displayState}
+            </div>
+            <div className="mt-0.5 text-xs text-text-muted">
+              {displayCountry}
             </div>
           </div>
           <button type="button" onClick={handleEdit} className="btn-ghost px-4 py-2 text-sm">
@@ -131,18 +174,47 @@ const LocationSection = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          {/* Country */}
+          <div>
+            <label htmlFor="settings-country" className="mb-1.5 block text-sm text-text">
+              Country
+            </label>
+            <div className="relative">
+              <select
+                id="settings-country"
+                className="input-base appearance-none pr-10"
+                {...register('country')}
+              >
+                <option value="">Select a country…</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute inset-y-0 right-3 my-auto h-5 w-5 text-text-muted" />
+            </div>
+            {errors.country && (
+              <p className="mt-1.5 text-xs text-error">{errors.country.message}</p>
+            )}
+          </div>
+
+          {/* State / Region */}
           <div>
             <label htmlFor="settings-state" className="mb-1.5 block text-sm text-text">
-              State / UT
+              State / Region
             </label>
             <div className="relative">
               <select
                 id="settings-state"
-                className="input-base appearance-none pr-10"
+                disabled={!selectedCountry}
+                className="input-base appearance-none pr-10 disabled:cursor-not-allowed disabled:opacity-60"
                 {...register('state')}
               >
-                <option value="">Select a state…</option>
-                {STATES.map((s) => (
+                <option value="">
+                  {selectedCountry ? 'Select a state / region…' : 'Select a country first'}
+                </option>
+                {states.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
@@ -155,9 +227,10 @@ const LocationSection = () => {
             )}
           </div>
 
+          {/* District / City (dropdown) */}
           <div>
             <label htmlFor="settings-district" className="mb-1.5 block text-sm text-text">
-              District
+              District / City
             </label>
             <div className="relative">
               <select
@@ -167,11 +240,11 @@ const LocationSection = () => {
                 {...register('district')}
               >
                 <option value="">
-                  {selectedState ? 'Select a district…' : 'Select a state first'}
+                  {selectedState ? 'Select a district / city…' : 'Select a state first'}
                 </option>
-                {districts.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+                {cities.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>
@@ -182,6 +255,7 @@ const LocationSection = () => {
             )}
           </div>
 
+          {/* City / Town (free text) */}
           <div>
             <label htmlFor="settings-city" className="mb-1.5 block text-sm text-text">
               Enter your city / town
@@ -191,7 +265,7 @@ const LocationSection = () => {
               type="text"
               autoComplete="address-level2"
               className="input-base"
-              placeholder="e.g. Nashik"
+              placeholder="e.g. Sinnar, Brooklyn, Shibuya"
               {...register('city')}
             />
             {errors.city && (
@@ -224,6 +298,7 @@ const LocationSection = () => {
     </div>
   );
 };
+
 
 /* -----------------------------------------------------------------------
  * SettingsPage

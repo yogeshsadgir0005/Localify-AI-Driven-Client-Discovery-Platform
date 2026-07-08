@@ -9,7 +9,7 @@ const safeParse = (value) => {
     return JSON.parse(value);
   } catch {
     return null;
-  }
+  } 
 };
 
 export const useAuthStore = create((set, get) => ({

@@ -18,7 +18,7 @@ import Layout from '../layout/Layout';
 import BusinessCard, { BusinessCardSkeleton } from '../components/BusinessCard';
 import { useAuth } from '../hooks/useAuth';
 import { useBusinessSearch, CATEGORIES } from '../hooks/useBusinessSearch';
-import { getStateLabel } from '../utils/india';
+import { getStateLabelSmart, getCountryLabel } from '../utils/locations';
 
 /**
  * Build a compact list of page numbers with ellipses, e.g. [1, '…', 4, 5, 6, '…', 10].
@@ -99,8 +99,8 @@ const SearchPage = () => {
         <title>{`Businesses in ${address.city} — Localify`}</title>
         <meta
           name="description"
-          content={`Discover offline-only local businesses in ${address.city}, ${address.district}, ${getStateLabel(
-            address.state
+          content={`Discover offline-only local businesses in ${address.city}, ${address.district}, ${getStateLabelSmart(
+            address.state, address.country
           )}.`}
         />
       </Helmet>
@@ -116,8 +116,13 @@ const SearchPage = () => {
               </div>
               <h1 className="font-display text-xl font-bold text-text sm:text-2xl">
                 {address.city}, {address.district},{' '}
-                {getStateLabel(address.state)}
+                {getStateLabelSmart(address.state, address.country)}
               </h1>
+              {address.country && address.country !== 'IN' && (
+                <div className="text-xs text-text-muted">
+                  {getCountryLabel(address.country)}
+                </div>
+              )}
             </div>
           </div>
           <button
