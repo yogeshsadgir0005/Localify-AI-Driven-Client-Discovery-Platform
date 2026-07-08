@@ -116,13 +116,9 @@ const SearchPage = () => {
               </div>
               <h1 className="font-display text-xl font-bold text-text sm:text-2xl">
                 {address.city ? `${address.city}, ` : ''}{address.district},{' '}
-                {getStateLabelSmart(address.state, address.country)}
+                {getStateLabelSmart(address.state, address.country)},{' '}
+                {getCountryLabel(address.country)}
               </h1>
-              {address.country && address.country !== 'IN' && (
-                <div className="text-xs text-text-muted">
-                  {getCountryLabel(address.country)}
-                </div>
-              )}
             </div>
           </div>
           <button
