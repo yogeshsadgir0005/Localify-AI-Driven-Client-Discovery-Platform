@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '../utils/axios';
+import { useAuthStore } from '../store/authStore';
 
 const PAGE_SIZE = 12;
 
@@ -96,6 +97,7 @@ export const categoryOf = (business) => {
  * Hook that fetches and manages the business search results for an address.
  */
 export const useBusinessSearch = (address) => {
+  const plan = useAuthStore((s) => s.user?.plan || 'free');
   const [allResults, setAllResults] = useState([]);
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [error, setError] = useState(null);
@@ -119,6 +121,7 @@ export const useBusinessSearch = (address) => {
           city: address.city || address.district,
           district: address.district,
           state: address.state,
+          plan,
         },
       });
       setAllResults(Array.isArray(data.results) ? data.results : []);
@@ -137,7 +140,7 @@ export const useBusinessSearch = (address) => {
       setError(getErrorMessage(err, 'Could not load businesses.'));
       setStatus('error');
     }
-  }, [address?.country, address?.city, address?.district, address?.state]);
+  }, [address?.country, address?.city, address?.district, address?.state, plan]);
 
   useEffect(() => {
     fetchResults();

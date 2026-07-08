@@ -11,8 +11,6 @@ const axios = require('axios');
  *   EMAIL_FROM       a sender address VERIFIED in Brevo (e.g. you@gmail.com)
  *   EMAIL_FROM_NAME  display name, default 'Setu'
  */
-const isLive = () => !!process.env.BREVO_API_KEY;
-
 const fromName = () => process.env.EMAIL_FROM_NAME || 'Setu';
 
 /**
@@ -20,9 +18,8 @@ const fromName = () => process.env.EMAIL_FROM_NAME || 'Setu';
  * @param {{to:string, subject:string, html?:string, text?:string}} msg
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-  if (!isLive()) {
-    console.log(`\n[email:dev] to=${to} | ${subject}\n${text || html || ''}\n`);
-    return { sent: true, dev: true };
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('[email] BREVO_API_KEY is not set. Email will fail.');
   }
   try {
     await axios.post(
@@ -43,10 +40,10 @@ const sendEmail = async ({ to, subject, html, text }) => {
         timeout: 10000,
       }
     );
-    return { sent: true, dev: false };
+    return { sent: true };
   } catch (err) {
     console.error('[email] send failed:', err.response?.status || err.message);
-    return { sent: false, dev: false };
+    return { sent: false };
   }
 };
 
@@ -68,4 +65,4 @@ const sendOtpEmail = async (to, otp, { context = 'verification' } = {}) => {
   return sendEmail({ to, subject, html, text });
 };
 
-module.exports = { isLive, sendEmail, sendOtpEmail };
+module.exports = { sendEmail, sendOtpEmail };

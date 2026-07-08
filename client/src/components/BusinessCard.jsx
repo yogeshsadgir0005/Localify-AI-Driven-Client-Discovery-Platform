@@ -1,7 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'motion/react';
-import { Star, Phone, MapPin, Globe2, ChevronRight } from 'lucide-react';
+import { Star, Phone, MapPin, Globe2, ChevronRight, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { categoryOf } from '../hooks/useBusinessSearch';
+import api from '../utils/axios';
+import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../store/authStore';
 
 const truncate = (str, n) =>
   str && str.length > n ? `${str.slice(0, n - 1).trimEnd()}…` : str || '';
@@ -38,12 +42,42 @@ const BusinessCard = ({ business, index = 0 }) => {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const category = categoryOf(business);
+  const plan = useAuthStore((s) => s.user?.plan || 'free');
+  const user = useAuthStore((s) => s.user);
+  const { refreshProfile } = useAuth();
 
   const open = () => navigate(`/business/${business.placeId}`);
   const onKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       open();
+    }
+  };
+
+  const isUnhidden = user?.phoneUnhides?.unlockedPlaceIds?.includes(business.placeId);
+  const remainingUnhides = Math.max(0, 3 - (user?.phoneUnhides?.unlockedPlaceIds?.length || 0));
+
+  const handlePhoneClick = async (e) => {
+    e.stopPropagation();
+    
+    if (plan !== 'free' || isUnhidden) {
+      return; // Already unhidden
+    }
+
+    try {
+      const { data } = await api.post('/auth/unhide-phone', { placeId: business.placeId });
+      if (data.success) {
+        toast.success(`Contact unhidden! ${data.remaining} remaining this week.`);
+        await refreshProfile(); // Refresh user state to show unhidden number across the app
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        toast('Upgrade to Pro to view more contact details.', { icon: '🔒' });
+        navigate('/subscriptions');
+      } else {
+        const errorMsg = err.response?.data?.message || err.message;
+        toast.error(`Could not unhide contact: ${errorMsg}`);
+      }
     }
   };
 
@@ -75,10 +109,22 @@ const BusinessCard = ({ business, index = 0 }) => {
       </div>
 
       {business.phone ? (
-        <div className="flex items-center gap-2 text-sm text-text">
-          <Phone className="h-4 w-4 shrink-0 text-accent" />
-          <span>{business.phone}</span>
-        </div>
+        (plan === 'free' && !isUnhidden) ? (
+          <div 
+            onClick={handlePhoneClick}
+            className="flex items-center gap-2 text-sm text-text-muted hover:text-accent cursor-pointer group/phone transition"
+            title="Click to unhide phone number"
+          >
+            <EyeOff className="h-4 w-4 shrink-0 transition group-hover/phone:scale-110" />
+            <span className="font-mono tracking-wider">+91 ••••••••••</span>
+            <span className="text-[10px] font-medium opacity-60">({remainingUnhides} remaining)</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-text">
+            <Phone className="h-4 w-4 shrink-0 text-accent" />
+            <span>{business.phone}</span>
+          </div>
+        )
       ) : (
         <div className="flex items-center gap-2 text-sm text-text-muted">
           <Phone className="h-4 w-4 shrink-0" />
@@ -112,8 +158,8 @@ const BusinessCard = ({ business, index = 0 }) => {
 /**
  * Skeleton placeholder shown while results are loading.
  */
-export const BusinessCardSkeleton = () => (
-  <div className="card-base flex animate-pulse flex-col gap-4 p-5">
+export const BusinessCardSkeleton = ({ className = '' }) => (
+  <div className={`card-base flex animate-pulse flex-col gap-4 p-5 ${className}`}>
     <div className="flex items-start justify-between gap-3">
       <div className="h-5 w-2/3 rounded bg-surface-2" />
       <div className="h-5 w-16 rounded-full bg-surface-2" />

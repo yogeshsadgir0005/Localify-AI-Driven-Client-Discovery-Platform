@@ -29,14 +29,9 @@ exports.createOrder = async (req, res, next) => {
     const isPlaceholder = (val) => !val || val === 'dummy_key' || val === 'dummy_secret' || val.includes('your_') || val.includes('placeholder');
 
     if (isPlaceholder(keyId) || isPlaceholder(keySecret)) {
-      console.warn('Razorpay keys missing or are placeholders. Using MOCK mode.');
-      return res.json({
-        success: true,
-        orderId: `mock_order_${Date.now()}`,
-        amount: PLANS[plan].amount,
-        currency: 'INR',
-        keyId: 'mock_key',
-        isMock: true
+      return res.status(500).json({
+        success: false,
+        message: 'Payment gateway is not configured on the server.',
       });
     }
 
@@ -77,17 +72,17 @@ exports.verifyPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Missing payment verification details' });
     }
 
-    if (razorpay_order_id.startsWith('mock_order_') || !process.env.RAZORPAY_KEY_SECRET) {
-      console.log('Bypassing signature check for mock mode');
-    } else {
-      // Verify signature
-      const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-      hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-      const generated_signature = hmac.digest('hex');
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ success: false, message: 'Payment gateway is not configured on the server.' });
+    }
 
-      if (generated_signature !== razorpay_signature) {
-        return res.status(400).json({ success: false, message: 'Payment verification failed (signature mismatch)' });
-      }
+    // Verify signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: 'Payment verification failed (signature mismatch)' });
     }
 
     // Upgrade user plan

@@ -5,12 +5,7 @@ import { Menu, X, MapPin, LogOut, Search, Bell, ShieldCheck, Settings, FileText,
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import NotificationBell from '../components/NotificationBell';
-
-const Logo = () => (
-  <Link to="/" className="flex items-center">
-    <img src="/logo4.png" alt="Localify" className="h-16 w-auto object-contain" />
-  </Link>
-);
+import Logo from '../components/Logo';
 
 const initials = (name) =>
   (name || '?')

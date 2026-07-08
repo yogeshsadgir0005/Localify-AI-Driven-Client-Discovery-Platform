@@ -6,11 +6,11 @@ const jsonMessage = (message) => ({
 });
 
 /**
- * Global limiter: 100 requests / 15 minutes per IP.
+ * Global limiter: 500 requests / 15 minutes per IP.
  */
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: jsonMessage('Too many requests. Please try again in a few minutes.'),

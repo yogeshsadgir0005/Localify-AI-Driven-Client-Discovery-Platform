@@ -14,6 +14,36 @@ const {
 // In-memory cache for individual business details (6h TTL).
 const detailCache = new NodeCache({ stdTTL: 6 * 60 * 60, checkperiod: 600 });
 
+// Mix logic to guarantee free users see no-website businesses
+const applyFreeTierMix = (results, plan) => {
+  if (plan !== 'free') return results;
+
+  const withWeb = [];
+  const withoutWeb = [];
+  for (const b of results) {
+    if (b.website) withWeb.push(b);
+    else withoutWeb.push(b);
+  }
+  
+  const top6 = [];
+  let noWebNeeded = 4;
+  let withWebNeeded = 2;
+  
+  if (withoutWeb.length < noWebNeeded) {
+    withWebNeeded += (noWebNeeded - withoutWeb.length);
+    noWebNeeded = withoutWeb.length;
+  } else if (withWeb.length < withWebNeeded) {
+    noWebNeeded += (withWebNeeded - withWeb.length);
+    withWebNeeded = withWeb.length;
+  }
+  
+  top6.push(...withoutWeb.slice(0, noWebNeeded));
+  top6.push(...withWeb.slice(0, withWebNeeded));
+  
+  // Return the mixed top6 followed by the rest
+  return [...top6, ...results.filter(b => !top6.includes(b))];
+};
+
 // Google Places ToS permits temporary caching of Places *content* for up to
 // 30 days; only place_id may be retained indefinitely. Our SearchCache is a
 // short-lived (24h) staging buffer, and this ceiling is a hard guard so no
@@ -134,7 +164,7 @@ const searchBusinesses = async (req, res, next) => {
     const user = await User.findById(req.user.id).select('plan');
     const plan = user?.plan || 'free';
     let resultLimit = 6;
-    if (plan === 'pro') resultLimit = 60;
+    if (plan === 'pro') resultLimit = 30;
     if (plan === 'max') resultLimit = Infinity;
 
     if (cached) {
@@ -142,9 +172,11 @@ const searchBusinesses = async (req, res, next) => {
         target: cacheKey,
         meta: { city, district, state, total: cached.results.length, cached: true },
       });
-      res.set('Cache-Control', 'public, max-age=3600');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       
-      const slicedResults = cached.results.slice(0, resultLimit);
+      const validResults = cached.results.filter(b => b.phone);
+      const mixed = applyFreeTierMix(validResults, plan);
+      const slicedResults = mixed.slice(0, resultLimit);
       
       return res.json(
         buildSearchPayload(slicedResults, {
@@ -154,9 +186,9 @@ const searchBusinesses = async (req, res, next) => {
           city,
           district,
           state,
-          total: cached.results.length, // keep true total
-          noWebsiteCount: cached.results.filter((b) => !b.website).length,
-          hasLockedResults: cached.results.length > resultLimit,
+          total: validResults.length, // keep true total
+          noWebsiteCount: validResults.filter((b) => !b.website).length,
+          hasLockedResults: validResults.length > resultLimit,
         })
       );
     }
@@ -247,7 +279,7 @@ const searchBusinesses = async (req, res, next) => {
     );
 
     const enriched = settled
-      .filter((s) => s.status === 'fulfilled' && s.value)
+      .filter((s) => s.status === 'fulfilled' && s.value && s.value.phone)
       .map((s) => s.value)
       // Surface the most prominent businesses first.
       .sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
@@ -273,9 +305,11 @@ const searchBusinesses = async (req, res, next) => {
       target: cacheKey,
       meta: { city, district, state, total: enriched.length, cached: false },
     });
-    const slicedEnriched = enriched.slice(0, resultLimit);
+    
+    const mixed = applyFreeTierMix(enriched, plan);
+    const slicedEnriched = mixed.slice(0, resultLimit);
 
-    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.json(
       buildSearchPayload(slicedEnriched, {
         cached: false,
@@ -335,7 +369,7 @@ const getBusinessDetail = async (req, res, next) => {
       target: placeId,
       meta: { name: business.name || null, hasWebsite: !!business.website },
     });
-    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cache-Control', 'private, max-age=3600');
     return res.json({ success: true, business });
   } catch (err) {
     return next(err);

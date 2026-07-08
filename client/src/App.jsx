@@ -25,6 +25,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ModerationPage = lazy(() => import('./pages/ModerationPage'));
 const ProfileDetailPage = lazy(() => import('./pages/ProfileDetailPage'));
 const RequirementsPage = lazy(() => import('./pages/RequirementsPage'));
+const AddressSetupPage = lazy(() => import('./pages/AddressSetupPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'));
 
@@ -280,10 +281,24 @@ class ErrorBoundary extends Component {
   }
 }
 
-const App = () => (
-  <HelmetProvider>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <ErrorBoundary>
+const App = () => {
+  useEffect(() => {
+    import('./store/authStore').then(({ useAuthStore }) => {
+      const token = useAuthStore.getState().token;
+      if (token) {
+        import('./utils/axios').then(({ default: api }) => {
+          api.get('/auth/profile').then(({ data }) => {
+            useAuthStore.getState().setUser(data.user);
+          }).catch(() => {});
+        });
+      }
+    });
+  }, []);
+
+  return (
+    <HelmetProvider>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <ErrorBoundary>
         <BackgroundFX />
         <Toaster
           position="top-center"
@@ -303,6 +318,14 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route
+              path="/address-setup"
+              element={
+                <ProtectedRoute>
+                  <AddressSetupPage />
+                </ProtectedRoute>
+              }
+            />
 
 
             <Route
@@ -406,6 +429,7 @@ const App = () => (
       </ErrorBoundary>
     </GoogleOAuthProvider>
   </HelmetProvider>
-);
+  );
+};
 
 export default App;

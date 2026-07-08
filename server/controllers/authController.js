@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const emailService = require('../services/emailService');
 const { logEvent } = require('../utils/telemetry');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,30 +45,85 @@ const register = async (req, res, next) => {
       });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
+    let user = await User.findOne({ email: email.toLowerCase() });
+    if (user && user.emailVerified) {
       return res.status(409).json({
         success: false,
         message: 'An account with this email already exists. Try logging in.',
       });
     }
 
-    const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password,
-    });
+    if (!user) {
+      user = new User({ email: email.toLowerCase() });
+    }
 
+    user.name = name.trim();
+    user.password = password;
+    user.emailVerified = false;
+
+    const otp = generateOTP();
+    user.signupOTP = hashOTP(otp);
+    user.signupOTPExpiry = new Date(Date.now() + OTP_TTL_MS);
+
+    await user.save();
+
+    await emailService.sendOtpEmail(user.email, otp, { context: 'account verification' });
+
+    console.log('[auth] Register successful, sent OTP for', user.email);
+    return res.status(200).json({
+      success: true,
+      requiresOtp: true,
+      message: 'A verification code has been sent to your email.',
+    });
+  } catch (err) {
+    console.error('[auth] Register error:', err);
+    return next(err);
+  }
+};
+
+/**
+ * POST /api/auth/verify-signup-otp
+ */
+const verifySignupOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body || {};
+
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.status(422).json({ success: false, message: 'A valid email is required.' });
+    }
+    if (!otp || !/^\d{6}$/.test(String(otp))) {
+      return res.status(422).json({ success: false, message: 'A valid 6-digit code is required.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+signupOTP +signupOTPExpiry');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found. Please register again.' });
+    }
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified. Please log in.' });
+    }
+    if (!user.signupOTP || !user.signupOTPExpiry || user.signupOTPExpiry.getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'Verification code expired. Please register again to get a new code.' });
+    }
+
+    if (hashOTP(otp) !== user.signupOTP) {
+      return res.status(400).json({ success: false, message: 'Incorrect verification code.' });
+    }
+
+    user.emailVerified = true;
+    user.signupOTP = null;
+    user.signupOTPExpiry = null;
     user.lastLogin = new Date();
     await user.save();
 
-    logEvent(req, 'register', {
+    logEvent(req, 'register_verified', {
       actor: user._id.toString(),
       actorEmail: user.email,
     });
 
     const token = user.generateJWT();
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       token,
       user: user.toSafeObject(),
@@ -104,6 +160,15 @@ const login = async (req, res, next) => {
       return res
         .status(401)
         .json({ success: false, message: 'No account found with this email.' });
+    }
+
+    // Only block if emailVerified is explicitly set to false (legacy accounts have undefined)
+    // and they don't have a Google ID (Google accounts are implicitly verified).
+    if (user.emailVerified === false && !user.googleId && user.password) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email address. Try signing up again to receive a new code.',
+      });
     }
 
     if (!user.isActive) {
@@ -194,6 +259,7 @@ const googleAuth = async (req, res, next) => {
       // Link the Google account to an existing (possibly password) user.
       if (!user.googleId) user.googleId = payload.sub;
       if (!user.avatar && payload.picture) user.avatar = payload.picture;
+      if (!user.emailVerified) user.emailVerified = true;
       if (!user.isActive) {
         return res.status(403).json({
           success: false,
@@ -207,6 +273,7 @@ const googleAuth = async (req, res, next) => {
         googleId: payload.sub,
         avatar: payload.picture || '',
         password: null,
+        emailVerified: true, // Google accounts are implicitly verified
       });
     }
 
@@ -244,10 +311,10 @@ const forgotPassword = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      '+passwordResetOTP +passwordResetExpiry +passwordResetAttempts +passwordResetLockUntil'
+      '+passwordResetOTP +passwordResetExpiry +passwordResetAttempts +passwordResetLockUntil +password'
     );
 
-    if (user && user.password) {
+    if (user) {
       const otp = generateOTP();
       user.passwordResetOTP = hashOTP(otp);
       user.passwordResetExpiry = new Date(Date.now() + OTP_TTL_MS);
@@ -255,16 +322,97 @@ const forgotPassword = async (req, res, next) => {
       user.passwordResetLockUntil = null;
       await user.save();
 
-      // Dev-only: surface the OTP via the server console (no email service).
-      console.log(
-        `\n[auth] Password reset OTP for ${user.email}: ${otp} (valid 15 min)\n`
-      );
+      // Send the OTP via email
+      await emailService.sendOtpEmail(user.email, otp, { context: 'password reset' });
+      console.log('[auth] Password reset OTP sent for', user.email);
     }
 
     return res.json({
       success: true,
       message:
-        'If an account exists for this email, a reset code has been generated. Check the server console (dev mode).',
+        'If an account exists for this email, a reset code has been sent to it.',
+    });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Body: { email, otp }
+ */
+const verifyResetOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body || {};
+
+    if (!email || !EMAIL_RE.test(email)) {
+      return res
+        .status(422)
+        .json({ success: false, message: 'A valid email is required.' });
+    }
+    if (!otp || !/^\d{6}$/.test(String(otp))) {
+      return res
+        .status(422)
+        .json({ success: false, message: 'A valid 6-digit code is required.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select(
+      '+passwordResetOTP +passwordResetExpiry +passwordResetAttempts +passwordResetLockUntil'
+    );
+
+    if (!user || !user.passwordResetOTP || !user.passwordResetExpiry) {
+      return res.status(400).json({
+        success: false,
+        message: 'No reset request found. Please request a new code.',
+      });
+    }
+
+    // Account temporarily locked after too many wrong attempts.
+    if (
+      user.passwordResetLockUntil &&
+      user.passwordResetLockUntil.getTime() > Date.now()
+    ) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please try again in 15 minutes.',
+      });
+    }
+
+    if (user.passwordResetExpiry.getTime() < Date.now()) {
+      user.passwordResetOTP = null;
+      user.passwordResetExpiry = null;
+      user.passwordResetAttempts = 0;
+      await user.save();
+      return res.status(400).json({
+        success: false,
+        message: 'OTP expired. Please request a new code.',
+      });
+    }
+
+    if (hashOTP(otp) !== user.passwordResetOTP) {
+      user.passwordResetAttempts = (user.passwordResetAttempts || 0) + 1;
+      if (user.passwordResetAttempts >= MAX_OTP_ATTEMPTS) {
+        user.passwordResetLockUntil = new Date(Date.now() + OTP_LOCK_MS);
+        user.passwordResetOTP = null;
+        user.passwordResetExpiry = null;
+        await user.save();
+        return res.status(429).json({
+          success: false,
+          message:
+            'Too many incorrect attempts. Reset is locked for 15 minutes.',
+        });
+      }
+      await user.save();
+      const remaining = MAX_OTP_ATTEMPTS - user.passwordResetAttempts;
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect code. ${remaining} attempt(s) remaining.`,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully.',
     });
   } catch (err) {
     return next(err);
@@ -357,6 +505,7 @@ const resetPassword = async (req, res, next) => {
     user.passwordResetExpiry = null;
     user.passwordResetAttempts = 0;
     user.passwordResetLockUntil = null;
+    user.emailVerified = true; // Implicitly verified since they got the OTP
     await user.save();
 
     return res.json({
@@ -413,6 +562,7 @@ const updateAddress = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: `You have reached your limit of ${limit} location changes per week on the ${plan} plan.`,
+        user: user.toSafeObject(),
       });
     }
 
@@ -596,11 +746,77 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/auth/unhide-phone  [protected]
+ */
+const unhidePhone = async (req, res, next) => {
+  try {
+    const { placeId } = req.body;
+    if (!placeId) {
+      return res.status(400).json({ success: false, message: 'placeId is required.' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Pro/Max users don't need this quota.
+    if (user.plan !== 'free') {
+      return res.json({ success: true });
+    }
+
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+
+    if (!user.phoneUnhides) {
+      user.phoneUnhides = { unlockedPlaceIds: [], resetAt: now };
+    }
+    if (!user.phoneUnhides.unlockedPlaceIds) {
+      user.phoneUnhides.unlockedPlaceIds = [];
+    }
+
+    // Reset weekly limit
+    if (now - (user.phoneUnhides.resetAt || now) > ONE_WEEK) {
+      user.phoneUnhides.unlockedPlaceIds = [];
+      user.phoneUnhides.resetAt = now;
+    }
+
+    // If they already unlocked it this week, it's a free pass
+    if (user.phoneUnhides.unlockedPlaceIds.includes(placeId)) {
+      return res.json({ success: true, remaining: 3 - user.phoneUnhides.unlockedPlaceIds.length });
+    }
+
+    // Check limit (max 3)
+    if (user.phoneUnhides.unlockedPlaceIds.length >= 3) {
+      return res.status(403).json({
+        success: false,
+        message: 'You have reached your limit of 3 contact unhides for this week. Please upgrade to Pro.',
+        requiresUpgrade: true
+      });
+    }
+
+    user.phoneUnhides.unlockedPlaceIds.push(placeId);
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { phoneUnhides: user.phoneUnhides } }
+    );
+
+    return res.json({ 
+      success: true, 
+      remaining: 3 - user.phoneUnhides.unlockedPlaceIds.length 
+    });
+  } catch (err) {
+    console.error('unhidePhone Error:', err);
+    return res.status(500).json({ success: false, message: 'Internal error: ' + err.message, stack: err.stack });
+  }
+};
+
 module.exports = {
   register,
+  verifySignupOtp,
   login,
   googleAuth,
   forgotPassword,
+  verifyResetOtp,
   resetPassword,
   updateAddress,
   getProfile,
@@ -609,4 +825,5 @@ module.exports = {
   listSavedSearches,
   addSavedSearch,
   deleteSavedSearch,
+  unhidePhone,
 };

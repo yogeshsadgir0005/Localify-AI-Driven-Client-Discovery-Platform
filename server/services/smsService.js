@@ -13,7 +13,7 @@ const emailService = require('./emailService');
  * DEV mode: the code is logged to the server console and the caller may echo
  * `devOtp` in non-production.
  */
-const isLive = () => emailService.isLive();
+// No email available (and we don't use SMS here), so fail.
 
 /**
  * Deliver a one-time code. Never throws — returns { sent, dev, channel } so the
@@ -26,11 +26,10 @@ const isLive = () => emailService.isLive();
 const sendOtp = async (recipient, otp, { context = 'verification', email } = {}) => {
   if (email) {
     const r = await emailService.sendOtpEmail(email, otp, { context });
-    return { sent: r.sent, dev: r.dev, channel: 'email' };
+    return { sent: r.sent, channel: 'email' };
   }
-  // No email on file — dev-console fallback keeps the flow working.
-  console.log(`\n[otp:dev] code for ${recipient} (${context}): ${otp}\n`);
-  return { sent: true, dev: true, channel: 'dev' };
+  // No email on file — delivery fails.
+  return { sent: false, channel: 'none', error: 'No email provided for OTP' };
 };
 
-module.exports = { isLive, sendOtp };
+module.exports = { sendOtp };

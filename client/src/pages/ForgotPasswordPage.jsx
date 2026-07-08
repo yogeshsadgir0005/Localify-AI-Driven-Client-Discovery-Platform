@@ -5,21 +5,22 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Eye, EyeOff, Loader2, KeyRound, CheckCircle2, Info } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
+import Logo from '../components/Logo';
 import api, { getErrorMessage } from '../utils/axios';
 
 const emailSchema = z.object({
   email: z.string().trim().email('Enter a valid email'),
 });
 
-const resetSchema = z
+const otpSchema = z.object({
+  otp: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+
+const passwordSchema = z
   .object({
-    otp: z
-      .string()
-      .trim()
-      .regex(/^\d{6}$/, 'Enter the 6-digit code'),
     password: z
       .string()
       .min(8, 'At least 8 characters')
@@ -43,14 +44,19 @@ const ForgotPasswordPage = () => {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPw, setShowPw] = useState(false);
 
   const emailForm = useForm({
     resolver: zodResolver(emailSchema),
     mode: 'onTouched',
   });
-  const resetForm = useForm({
-    resolver: zodResolver(resetSchema),
+  const otpForm = useForm({
+    resolver: zodResolver(otpSchema),
+    mode: 'onTouched',
+  });
+  const passwordForm = useForm({
+    resolver: zodResolver(passwordSchema),
     mode: 'onTouched',
   });
 
@@ -58,22 +64,32 @@ const ForgotPasswordPage = () => {
     try {
       await api.post('/auth/forgot-password', { email: values.email });
       setEmail(values.email);
-      toast.success('Reset code generated. Check the server console (dev mode).');
+      toast.success('Reset code sent to your email.');
       setStep(2);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Could not send reset code.'));
     }
   };
 
-  const submitReset = async (values) => {
+  const submitOtp = async (values) => {
+    try {
+      await api.post('/auth/verify-reset-otp', { email, otp: values.otp });
+      setOtp(values.otp);
+      setStep(3);
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Could not verify code.'));
+    }
+  };
+
+  const submitPassword = async (values) => {
     try {
       await api.post('/auth/reset-password', {
         email,
-        otp: values.otp,
+        otp,
         password: values.password,
       });
       toast.success('Password reset successful.');
-      setStep(3);
+      setStep(4);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Could not reset password.'));
     }
@@ -98,10 +114,8 @@ const ForgotPasswordPage = () => {
 
       <section className="mx-auto flex max-w-md flex-col px-4 py-12 sm:px-6">
         <div className="card-base overflow-hidden p-7 sm:p-8">
-          <div className="mb-6 text-center">
-            <span className="mb-3 inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary to-accent">
-              <KeyRound className="h-6 w-6 text-bg" />
-            </span>
+          <div className="mb-6 text-center flex flex-col items-center">
+            <Logo className="h-16 w-auto object-contain mb-4" />
             <h1 className="font-display text-2xl font-bold text-text">
               Reset your password
             </h1>
@@ -109,7 +123,7 @@ const ForgotPasswordPage = () => {
 
           {/* Step indicator */}
           <div className="mb-6 flex items-center justify-center gap-2">
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, 4].map((n) => (
               <span
                 key={n}
                 className={`h-1.5 rounded-full transition-all ${
@@ -154,14 +168,6 @@ const ForgotPasswordPage = () => {
                   )}
                 </div>
 
-                <div className="flex items-start gap-2 rounded-xl border border-border bg-surface-2 p-3 text-xs text-text-muted">
-                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span>
-                    Dev mode: no emails are sent. The reset code is printed in the
-                    backend server console.
-                  </span>
-                </div>
-
                 <motion.button
                   whileTap={reduce ? undefined : { scale: 0.96 }}
                   type="submit"
@@ -180,14 +186,13 @@ const ForgotPasswordPage = () => {
               <motion.form
                 key="step2"
                 {...motionProps}
-                onSubmit={resetForm.handleSubmit(submitReset)}
+                onSubmit={otpForm.handleSubmit(submitOtp)}
                 noValidate
                 className="space-y-4"
               >
                 <p className="text-sm text-text-muted">
                   Enter the 6-digit code sent for{' '}
-                  <span className="text-text">{email}</span> and choose a new
-                  password.
+                  <span className="text-text">{email}</span>.
                 </p>
                 <div>
                   <label
@@ -202,14 +207,48 @@ const ForgotPasswordPage = () => {
                     maxLength={6}
                     className="input-base tracking-[0.5em]"
                     placeholder="000000"
-                    {...resetForm.register('otp')}
+                    {...otpForm.register('otp')}
                   />
-                  {resetForm.formState.errors.otp && (
+                  {otpForm.formState.errors.otp && (
                     <p className="mt-1.5 text-xs text-error">
-                      {resetForm.formState.errors.otp.message}
+                      {otpForm.formState.errors.otp.message}
                     </p>
                   )}
                 </div>
+
+                <motion.button
+                  whileTap={reduce ? undefined : { scale: 0.96 }}
+                  type="submit"
+                  disabled={otpForm.formState.isSubmitting}
+                  className="btn-primary w-full"
+                >
+                  {otpForm.formState.isSubmitting && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  Verify code
+                </motion.button>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="w-full text-center text-xs text-text-muted hover:text-text"
+                >
+                  Use a different email
+                </button>
+              </motion.form>
+            )}
+
+            {step === 3 && (
+              <motion.form
+                key="step3"
+                {...motionProps}
+                onSubmit={passwordForm.handleSubmit(submitPassword)}
+                noValidate
+                className="space-y-4"
+              >
+                <p className="text-sm text-text-muted">
+                  Code verified. Choose a new password for your account.
+                </p>
 
                 <div>
                   <label
@@ -225,7 +264,7 @@ const ForgotPasswordPage = () => {
                       autoComplete="new-password"
                       className="input-base pr-12"
                       placeholder="••••••••"
-                      {...resetForm.register('password')}
+                      {...passwordForm.register('password')}
                     />
                     <button
                       type="button"
@@ -240,9 +279,9 @@ const ForgotPasswordPage = () => {
                       )}
                     </button>
                   </div>
-                  {resetForm.formState.errors.password && (
+                  {passwordForm.formState.errors.password && (
                     <p className="mt-1.5 text-xs text-error">
-                      {resetForm.formState.errors.password.message}
+                      {passwordForm.formState.errors.password.message}
                     </p>
                   )}
                 </div>
@@ -260,11 +299,11 @@ const ForgotPasswordPage = () => {
                     autoComplete="new-password"
                     className="input-base"
                     placeholder="••••••••"
-                    {...resetForm.register('confirmPassword')}
+                    {...passwordForm.register('confirmPassword')}
                   />
-                  {resetForm.formState.errors.confirmPassword && (
+                  {passwordForm.formState.errors.confirmPassword && (
                     <p className="mt-1.5 text-xs text-error">
-                      {resetForm.formState.errors.confirmPassword.message}
+                      {passwordForm.formState.errors.confirmPassword.message}
                     </p>
                   )}
                 </div>
@@ -272,28 +311,20 @@ const ForgotPasswordPage = () => {
                 <motion.button
                   whileTap={reduce ? undefined : { scale: 0.96 }}
                   type="submit"
-                  disabled={resetForm.formState.isSubmitting}
+                  disabled={passwordForm.formState.isSubmitting}
                   className="btn-primary w-full"
                 >
-                  {resetForm.formState.isSubmitting && (
+                  {passwordForm.formState.isSubmitting && (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
                   Reset password
                 </motion.button>
-
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="w-full text-center text-xs text-text-muted hover:text-text"
-                >
-                  Use a different email
-                </button>
               </motion.form>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <motion.div
-                key="step3"
+                key="step4"
                 {...motionProps}
                 className="flex flex-col items-center gap-4 text-center"
               >
@@ -316,7 +347,7 @@ const ForgotPasswordPage = () => {
             )}
           </AnimatePresence>
 
-          {step !== 3 && (
+          {step !== 4 && (
             <p className="mt-6 text-center text-sm text-text-muted">
               Remembered it?{' '}
               <Link

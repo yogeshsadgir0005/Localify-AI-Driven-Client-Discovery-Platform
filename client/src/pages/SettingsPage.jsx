@@ -129,7 +129,11 @@ const LocationSection = () => {
       toast.success('Location saved.');
       setEditing(false);
     } else {
-      toast.error(res.error);
+      if (res.error?.toLowerCase().includes('limit')) {
+        toast(res.error, { icon: '🔒' });
+      } else {
+        toast.error(res.error);
+      }
     }
   };
 
@@ -167,12 +171,12 @@ const LocationSection = () => {
       </p>
 
       {plan !== 'max' && (
-        <div className={`mb-6 rounded-lg border p-3 text-sm ${limitReached ? 'border-red-500/30 bg-red-500/10 text-red-500' : 'border-border bg-surface-2 text-text-muted'}`}>
+        <div className={`mb-6 rounded-lg border p-3 text-sm ${limitReached ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border bg-surface-2 text-text-muted'}`}>
           <div className="flex items-center justify-between">
             <span>
               {limitReached 
-                ? 'You have reached your weekly location change limit.'
-                : `You can change your location ${remaining} more time${remaining === 1 ? '' : 's'} this week.`}
+                ? `You have reached your limit of ${limit} location changes this week.`
+                : `You have ${remaining} out of ${limit} location changes remaining this week.`}
             </span>
             <Link to="/subscriptions" className="font-semibold text-accent hover:underline">
               Upgrade

@@ -13,7 +13,6 @@ export const useAuth = () => {
   const isLoading = useAuthStore((s) => s.isLoading);
   const setAuth = useAuthStore((s) => s.setAuth);
   const setUser = useAuthStore((s) => s.setUser);
-  const updateAddressInStore = useAuthStore((s) => s.updateAddress);
   const logoutStore = useAuthStore((s) => s.logout);
 
   const login = useCallback(
@@ -37,10 +36,23 @@ export const useAuth = () => {
           email,
           password,
         });
+        // Registration now requires OTP verification, so we don't log in yet.
+        return { ok: true, requiresOtp: data.requiresOtp };
+      } catch (err) {
+        return { ok: false, error: getErrorMessage(err, 'Sign up failed.') };
+      }
+    },
+    []
+  );
+
+  const verifySignupOtp = useCallback(
+    async (email, otp) => {
+      try {
+        const { data } = await api.post('/auth/verify-signup-otp', { email, otp });
         setAuth(data.user, data.token);
         return { ok: true, user: data.user };
       } catch (err) {
-        return { ok: false, error: getErrorMessage(err, 'Sign up failed.') };
+        return { ok: false, error: getErrorMessage(err, 'OTP verification failed.') };
       }
     },
     [setAuth]
@@ -76,16 +88,19 @@ export const useAuth = () => {
     async (address) => {
       try {
         const { data } = await api.put('/auth/update-address', address);
-        updateAddressInStore(data.user.address);
+        setUser(data.user);
         return { ok: true, user: data.user };
       } catch (err) {
+        if (err.response?.data?.user) {
+          setUser(err.response.data.user);
+        }
         return {
           ok: false,
           error: getErrorMessage(err, 'Could not save address.'),
         };
       }
     },
-    [updateAddressInStore]
+    [setUser]
   );
 
   const logout = useCallback(() => {
@@ -104,6 +119,7 @@ export const useAuth = () => {
     hasAddress,
     login,
     signup,
+    verifySignupOtp,
     loginWithGoogle,
     refreshProfile,
     saveAddress,

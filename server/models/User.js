@@ -91,6 +91,20 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    signupOTP: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    signupOTPExpiry: {
+      type: Date,
+      default: null,
+      select: false,
+    },
     // Hashed OTP for password reset. Never store the plain OTP.
     passwordResetOTP: {
       type: String,
@@ -123,6 +137,10 @@ const userSchema = new mongoose.Schema(
     },
     locationChanges: {
       count: { type: Number, default: 0 },
+      resetAt: { type: Date, default: Date.now },
+    },
+    phoneUnhides: {
+      unlockedPlaceIds: { type: [String], default: [] },
       resetAt: { type: Date, default: Date.now },
     },
     lastLogin: {
@@ -187,6 +205,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     plan: this.plan,
     subscriptionExpiry: this.subscriptionExpiry,
     locationChanges: this.locationChanges,
+    phoneUnhides: this.phoneUnhides,
     roles: this.roles && this.roles.length ? this.roles : ['buyer'],
     phone: this.phone || null,
     phoneVerified: !!this.phoneVerified,

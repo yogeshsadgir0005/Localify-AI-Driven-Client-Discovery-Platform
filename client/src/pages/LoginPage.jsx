@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, useReducedMotion } from 'motion/react';
-import { Eye, EyeOff, Loader2, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
+import Logo from '../components/Logo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useAuth } from '../hooks/useAuth';
 
@@ -68,10 +69,8 @@ const LoginPage = () => {
           transition={{ duration: 0.4 }}
           className="card-base p-7 sm:p-8"
         >
-          <div className="mb-6 text-center">
-            <span className="mb-3 inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary to-accent">
-              <MapPin className="h-6 w-6 text-bg" />
-            </span>
+          <div className="mb-6 text-center flex flex-col items-center">
+            <Logo className="h-16 w-auto object-contain mb-4" />
             <h1 className="font-display text-2xl font-bold text-text">
               Welcome back
             </h1>

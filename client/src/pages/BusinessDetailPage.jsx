@@ -22,6 +22,7 @@ import {
   Quote,
   Gauge,
   Lock,
+  EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
@@ -126,8 +127,11 @@ const BusinessDetailPage = () => {
   const { placeId } = useParams();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const isFreePlan = !user || user.plan === 'free';
+  
+  const isUnhidden = user?.phoneUnhides?.unlockedPlaceIds?.includes(placeId);
+  const remainingUnhides = Math.max(0, 3 - (user?.phoneUnhides?.unlockedPlaceIds?.length || 0));
 
   const [business, setBusiness] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | success | error | notfound
@@ -249,6 +253,27 @@ const BusinessDetailPage = () => {
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/search');
+  };
+
+  const handlePhoneClick = async (e) => {
+    e?.preventDefault();
+    if (!isFreePlan || isUnhidden) return;
+
+    try {
+      const { data } = await api.post('/auth/unhide-phone', { placeId });
+      if (data.success) {
+        toast.success(`Contact unhidden! ${data.remaining} remaining this week.`);
+        await refreshProfile();
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        toast('Upgrade to Pro to view more contact details.', { icon: '🔒' });
+        navigate('/subscriptions');
+      } else {
+        const errorMsg = err.response?.data?.message || err.message;
+        toast.error(`Could not unhide contact: ${errorMsg}`);
+      }
+    }
   };
 
   if (status === 'loading') {
@@ -390,12 +415,24 @@ const BusinessDetailPage = () => {
                     Phone
                   </div>
                   {business.phone ? (
-                    <a
-                      href={`tel:${(business.internationalPhone || business.phone).replace(/\s+/g, '')}`}
-                      className="text-sm font-medium text-text hover:text-primary"
-                    >
-                      {business.phone}
-                    </a>
+                    (isFreePlan && !isUnhidden) ? (
+                      <div 
+                        onClick={handlePhoneClick}
+                        className="flex cursor-pointer items-center gap-2 text-sm font-medium text-text hover:text-accent transition group"
+                        title="Click to unhide phone number"
+                      >
+                        <span className="font-mono tracking-wider text-text-muted group-hover:text-accent">+91 ••••••••••</span>
+                        <EyeOff className="h-4 w-4 text-text-muted group-hover:text-accent" />
+                        <span className="text-[10px] font-medium opacity-60 text-text-muted group-hover:text-accent">({remainingUnhides} remaining)</span>
+                      </div>
+                    ) : (
+                      <a
+                        href={`tel:${(business.internationalPhone || business.phone).replace(/\s+/g, '')}`}
+                        className="text-sm font-medium text-text hover:text-primary"
+                      >
+                        {business.phone}
+                      </a>
+                    )
                   ) : (
                     <div className="text-sm text-text-muted">Not listed</div>
                   )}
@@ -437,24 +474,44 @@ const BusinessDetailPage = () => {
             {/* Quick actions */}
             <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-6">
               {business.phone && (
-                <a
-                  href={`tel:${(business.internationalPhone || business.phone).replace(/\s+/g, '')}`}
-                  className="btn-ghost px-4 py-2 text-sm"
-                >
-                  <Phone className="h-4 w-4" />
-                  Call
-                </a>
+                (isFreePlan && !isUnhidden) ? (
+                  <button
+                    onClick={handlePhoneClick}
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    <EyeOff className="h-4 w-4" />
+                    Call
+                  </button>
+                ) : (
+                  <a
+                    href={`tel:${(business.internationalPhone || business.phone).replace(/\s+/g, '')}`}
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call
+                  </a>
+                )
               )}
               {waNumber && (
-                <a
-                  href={`https://wa.me/${waNumber}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-ghost px-4 py-2 text-sm"
-                >
-                  <MessageCircle className="h-4 w-4 text-accent" />
-                  WhatsApp
-                </a>
+                (isFreePlan && !isUnhidden) ? (
+                  <button
+                    onClick={handlePhoneClick}
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    <EyeOff className="h-4 w-4 text-accent" />
+                    WhatsApp
+                  </button>
+                ) : (
+                  <a
+                    href={`https://wa.me/${waNumber}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    <MessageCircle className="h-4 w-4 text-accent" />
+                    WhatsApp
+                  </a>
+                )
               )}
               <a
                 href={`#outreach`}

@@ -226,11 +226,7 @@ const requestClaimOtp = async (req, res, next) => {
 
     return res.json({
       success: true,
-      message: delivery.dev
-        ? 'A verification code was generated (dev mode — check the server console).'
-        : 'A verification code has been sent to your email.',
-      // Dev convenience only (dev mode + non-production) — never exposed in production.
-      ...(delivery.dev && process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
+      message: 'A verification code has been sent to your email.',
     });
   } catch (err) {
     return next(err);

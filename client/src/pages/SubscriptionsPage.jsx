@@ -14,9 +14,9 @@ const PLANS = [
     price: '₹0',
     description: 'Perfect for getting started.',
     features: [
-      'View 6 local businesses per search',
+      'View up to 6 businesses per search',
       'Change location 3 times per week',
-      'Basic contact details',
+      'Basic contact details (mobile hidden)',
     ],
     buttonText: 'Current Plan',
     popular: false,
@@ -29,9 +29,9 @@ const PLANS = [
     period: '/month',
     description: 'Unlocks deeper local discovery.',
     features: [
-      'View up to 60 businesses per search',
+      'View up to 30 businesses per search',
       'Change location 10 times per week',
-      'Full contact details & social links',
+      'Full contact details & mobile numbers',
       'Priority support',
     ],
     buttonText: 'Upgrade to Pro',
@@ -47,7 +47,7 @@ const PLANS = [
     features: [
       'Unlimited businesses per search',
       'Unlimited location changes',
-      'Full contact details & social links',
+      'Full contact details & mobile numbers',
       '24/7 Priority support',
       'Export data (coming soon)',
     ],
@@ -58,7 +58,7 @@ const PLANS = [
 ];
 
 const SubscriptionsPage = () => {
-  const { user, mutate } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [loadingPlanId, setLoadingPlanId] = useState(null);
   const [error, setError] = useState('');
@@ -89,24 +89,6 @@ const SubscriptionsPage = () => {
         return;
       }
 
-      if (orderData.isMock) {
-        // Bypass Razorpay frontend SDK
-        toast.success('Mock Mode: Simulating payment...');
-        const verifyRes = await api.post('/subscriptions/verify-payment', {
-          razorpay_order_id: orderData.orderId,
-          razorpay_payment_id: 'mock_payment_id',
-          razorpay_signature: 'mock_signature',
-          plan: planId
-        });
-
-        if (verifyRes.data.success) {
-          await mutate();
-          toast.success(verifyRes.data.message);
-          navigate('/search');
-        }
-        return;
-      }
-
       const res = await loadRazorpay();
       if (!res) {
         setError('Failed to load Razorpay SDK. Check your connection.');
@@ -132,7 +114,7 @@ const SubscriptionsPage = () => {
             });
 
             if (verifyRes.data.success) {
-              await mutate(); // Refresh user state
+              await refreshProfile(); // Refresh user state
               toast.success(verifyRes.data.message);
               navigate('/search');
             }

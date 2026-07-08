@@ -35,7 +35,7 @@ npm run dev            # starts with nodemon on http://localhost:5000
 | `JWT_SECRET` | Secret for signing JWTs. Use **at least 32 characters**. |
 | `JWT_EXPIRES_IN` | Token lifetime, e.g. `7d`. |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the client). |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret. |
+
 | `GOOGLE_MAPS_API_KEY` | API key with **Places API** enabled. |
 | `FRONTEND_URL` | Allowed CORS origin, e.g. `http://localhost:5173`. |
 | `GROQ_API_KEY` | Free Groq key for the LLM path (parse/draft/summaries). Blank = heuristic fallbacks. |

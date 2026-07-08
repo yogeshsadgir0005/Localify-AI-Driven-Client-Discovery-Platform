@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, useReducedMotion } from 'motion/react';
-import { Eye, EyeOff, Loader2, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '../layout/Layout';
+import Logo from '../components/Logo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useAuth } from '../hooks/useAuth';
 
@@ -46,9 +47,14 @@ const STRENGTH = [
 const SignupPage = () => {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const { signup } = useAuth();
+  const { signup, verifySignupOtp } = useAuth();
+  
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const {
     register,
@@ -66,6 +72,26 @@ const SignupPage = () => {
       email: values.email,
       password: values.password,
     });
+    if (res.ok && res.requiresOtp) {
+      setEmail(values.email);
+      toast.success('Verification code sent to your email.');
+      setStep(2);
+    } else if (res.ok) {
+      toast.success('Account created! Verification required.');
+      setStep(2);
+    } else {
+      toast.error(res.error || 'Signup failed.');
+    }
+  };
+
+  const onVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (otp.length !== 6) return toast.error('Enter a 6-digit code.');
+    
+    setIsVerifying(true);
+    const res = await verifySignupOtp(email, otp);
+    setIsVerifying(false);
+
     if (res.ok) {
       toast.success(`Welcome, ${res.user.name.split(' ')[0]}!`);
       navigate('/address-setup', { replace: true });
@@ -88,10 +114,8 @@ const SignupPage = () => {
           transition={{ duration: 0.4 }}
           className="card-base p-7 sm:p-8"
         >
-          <div className="mb-6 text-center">
-            <span className="mb-3 inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary to-accent">
-              <MapPin className="h-6 w-6 text-bg" />
-            </span>
+          <div className="mb-6 text-center flex flex-col items-center">
+            <Logo className="h-16 w-auto object-contain mb-4" />
             <h1 className="font-display text-2xl font-bold text-text">
               Create your account
             </h1>
@@ -100,148 +124,196 @@ const SignupPage = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm text-text">
-                Full name
-              </label>
-              <input
-                id="name"
-                type="text"
-                autoComplete="name"
-                className="input-base"
-                placeholder="Jane Doe"
-                {...register('name')}
-              />
-              {errors.name && (
-                <p className="mt-1.5 text-xs text-error">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm text-text">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                className="input-base"
-                placeholder="you@example.com"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="mt-1.5 text-xs text-error">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm text-text">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPw ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className="input-base pr-12"
-                  placeholder="••••••••"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
-                  className="absolute inset-y-0 right-3 grid place-items-center text-text-muted hover:text-text"
-                >
-                  {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-
-              {pw && (
-                <div className="mt-2">
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${strength.width} ${strength.color}`}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-text-muted">
-                    Strength: <span className="text-text">{strength.label}</span>
-                  </p>
-                </div>
-              )}
-
-              {errors.password && (
-                <p className="mt-1.5 text-xs text-error">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="mb-1.5 block text-sm text-text"
-              >
-                Confirm password
-              </label>
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showConfirm ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className="input-base pr-12"
-                  placeholder="••••••••"
-                  {...register('confirmPassword')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm((s) => !s)}
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                  className="absolute inset-y-0 right-3 grid place-items-center text-text-muted hover:text-text"
-                >
-                  {showConfirm ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
+          {step === 1 ? (
+            <>
+              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="mb-1.5 block text-sm text-text">
+                    Full name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    className="input-base"
+                    placeholder="Jane Doe"
+                    {...register('name')}
+                  />
+                  {errors.name && (
+                    <p className="mt-1.5 text-xs text-error">{errors.name.message}</p>
                   )}
-                </button>
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="mb-1.5 block text-sm text-text">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    className="input-base"
+                    placeholder="you@example.com"
+                    {...register('email')}
+                  />
+                  {errors.email && (
+                    <p className="mt-1.5 text-xs text-error">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="mb-1.5 block text-sm text-text">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPw ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      className="input-base pr-12"
+                      placeholder="••••••••"
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((s) => !s)}
+                      aria-label={showPw ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-3 grid place-items-center text-text-muted hover:text-text"
+                    >
+                      {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+
+                  {pw && (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${strength.width} ${strength.color}`}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-text-muted">
+                        Strength: <span className="text-text">{strength.label}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {errors.password && (
+                    <p className="mt-1.5 text-xs text-error">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="confirmPassword"
+                    className="mb-1.5 block text-sm text-text"
+                  >
+                    Confirm password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="confirmPassword"
+                      type={showConfirm ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      className="input-base pr-12"
+                      placeholder="••••••••"
+                      {...register('confirmPassword')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm((s) => !s)}
+                      aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-3 grid place-items-center text-text-muted hover:text-text"
+                    >
+                      {showConfirm ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="mt-1.5 text-xs text-error">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <motion.button
+                  whileTap={reduce ? undefined : { scale: 0.96 }}
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full"
+                >
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Creating account…' : 'Create account & Verify'}
+                </motion.button>
+              </form>
+
+              <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
+                <span className="h-px flex-1 bg-border" />
+                or continue with
+                <span className="h-px flex-1 bg-border" />
               </div>
-              {errors.confirmPassword && (
-                <p className="mt-1.5 text-xs text-error">
-                  {errors.confirmPassword.message}
+
+              <GoogleAuthButton
+                text="signup_with"
+                onSuccess={() => navigate('/address-setup', { replace: true })}
+              />
+
+              <p className="mt-6 text-center text-sm text-text-muted">
+                Already have an account?{' '}
+                <Link to="/login" className="font-medium text-primary hover:underline">
+                  Log in
+                </Link>
+              </p>
+            </>
+          ) : (
+            <form onSubmit={onVerifyOtp} className="space-y-4">
+              <div className="rounded-xl border border-border bg-surface-2 p-4 text-center">
+                <p className="text-sm text-text">
+                  We sent a 6-digit verification code to
+                  <br />
+                  <strong className="text-text">{email}</strong>
                 </p>
-              )}
-            </div>
+              </div>
 
-            <motion.button
-              whileTap={reduce ? undefined : { scale: 0.96 }}
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary w-full"
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'Creating account…' : 'Create account'}
-            </motion.button>
-          </form>
+              <div>
+                <label htmlFor="otp" className="mb-1.5 block text-sm text-text text-center">
+                  Enter Verification Code
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  className="input-base text-center text-2xl tracking-[0.5em] font-mono h-14"
+                  placeholder="------"
+                  autoComplete="one-time-code"
+                />
+              </div>
 
-          <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
-            <span className="h-px flex-1 bg-border" />
-            or continue with
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <GoogleAuthButton
-            text="signup_with"
-            onSuccess={() => navigate('/address-setup', { replace: true })}
-          />
-
-          <p className="mt-6 text-center text-sm text-text-muted">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-primary hover:underline">
-              Log in
-            </Link>
-          </p>
+              <motion.button
+                whileTap={reduce ? undefined : { scale: 0.96 }}
+                type="submit"
+                disabled={isVerifying || otp.length !== 6}
+                className="btn-primary w-full"
+              >
+                {isVerifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isVerifying ? 'Verifying…' : 'Verify Email'}
+              </motion.button>
+              
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="mt-4 w-full text-center text-sm text-text-muted hover:text-text"
+              >
+                Go back
+              </button>
+            </form>
+          )}
         </motion.div>
       </section>
     </Layout>

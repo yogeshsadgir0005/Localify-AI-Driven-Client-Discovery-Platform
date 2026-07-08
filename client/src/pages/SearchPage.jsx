@@ -48,28 +48,29 @@ const LockedResultsBanner = ({ plan }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={() => navigate('/subscriptions')}
-      className="col-span-full card-base group relative mt-4 flex cursor-pointer flex-col overflow-hidden bg-surface-2 p-8 text-center"
+      className="col-span-full relative mt-2 grid cursor-pointer group rounded-3xl overflow-hidden"
     >
-      <div className="absolute inset-0 z-10 grid place-items-center bg-bg/50 backdrop-blur-md transition group-hover:bg-bg/40">
-        <div className="flex max-w-sm flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center shadow-xl ring-1 ring-border">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-accent/10">
-            <Lock className="h-6 w-6 text-accent" />
+      {/* Cards Layer (Unblurred, standard opacity) */}
+      <div className="col-start-1 row-start-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pointer-events-none select-none" aria-hidden="true">
+        <BusinessCardSkeleton />
+        <BusinessCardSkeleton className="hidden sm:flex" />
+        <BusinessCardSkeleton className="hidden lg:flex" />
+      </div>
+
+      {/* Frosted Glass Overlay Layer */}
+      <div className="col-start-1 row-start-1 z-10 flex flex-col items-center justify-center p-8 bg-background/60 backdrop-blur-md transition group-hover:bg-background/50">
+        <div className="flex max-w-md flex-col items-center gap-4 text-center transition-transform group-hover:scale-[1.02]">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-accent text-white shadow-xl shadow-accent/20">
+            <Lock className="h-7 w-7" />
           </div>
-          <h3 className="font-display text-lg font-bold text-text">Unlock more results</h3>
-          <p className="text-sm text-text-muted">
-            You are currently on the {plan} plan. Upgrade to view all search results and access premium features.
+          <h3 className="font-display text-3xl font-bold text-text drop-shadow-sm">Unlock more results</h3>
+          <p className="text-base font-medium text-text drop-shadow-sm">
+            You are currently on the <span className="capitalize">{plan}</span> plan. Upgrade to view all search results.
           </p>
-          <span className="mt-2 inline-flex items-center text-sm font-semibold text-accent group-hover:underline">
+          <span className="mt-2 inline-flex items-center text-sm font-bold text-accent drop-shadow-sm">
             View Plans & Pricing
           </span>
         </div>
-      </div>
-      
-      {/* Blurred background mock content */}
-      <div className="flex flex-col gap-4 opacity-30 blur-sm pointer-events-none" aria-hidden="true">
-        <div className="h-8 w-1/3 rounded-lg bg-border" />
-        <div className="h-4 w-1/2 rounded bg-border" />
-        <div className="h-4 w-1/4 rounded bg-border" />
       </div>
     </motion.div>
   );
