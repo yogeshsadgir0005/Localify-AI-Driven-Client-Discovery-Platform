@@ -51,8 +51,8 @@ const getDetailCached = async (placeId) => {
  * We lead with the city/taluka + state (district is intentionally left out) so
  * Google biases toward the specific town instead of the larger district city.
  */
-const buildQueries = (city, state) => {
-  const loc = `${city}, ${state}, India`;
+const buildQueries = (city, state, country = 'India') => {
+  const loc = `${city}, ${state}, ${country}`;
   return [
     `shops and stores in ${loc}`,
     `shopping malls and markets in ${loc}`,
@@ -68,7 +68,7 @@ const buildQueries = (city, state) => {
   ];
 };
 
-const MAX_RESULTS = 120; // cap how many we enrich with details per search
+const MAX_RESULTS = 350; // cap how many we enrich with details per search
 
 /** Normalize a string for loose location matching (lowercase, alphanumeric). */
 const normalizeLoc = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -106,6 +106,7 @@ const buildSearchPayload = (results, extra = {}) => ({
  */
 const searchBusinesses = async (req, res, next) => {
   try {
+    const country = (req.query.country || 'India').trim();
     const city = (req.query.city || '').trim();
     const district = (req.query.district || '').trim();
     const state = (req.query.state || '').trim();
@@ -120,7 +121,7 @@ const searchBusinesses = async (req, res, next) => {
     // Bump this suffix whenever the query/category set changes, to invalidate
     // older cached result sets.
     const cacheKey =
-      `v4:city:${city}:district:${district}:state:${state}`.toLowerCase();
+      `v5:country:${country}:city:${city}:district:${district}:state:${state}`.toLowerCase();
 
     // 1) Persistent cache lookup (stores the full enriched set).
     const cached = await SearchCache.findOne({
@@ -138,6 +139,7 @@ const searchBusinesses = async (req, res, next) => {
         buildSearchPayload(cached.results, {
           cached: true,
           fetchedAt: cached.fetchedAt,
+          country,
           city,
           district,
           state,
@@ -146,13 +148,13 @@ const searchBusinesses = async (req, res, next) => {
     }
 
     // 2) Fan out across category queries (each paginated up to ~60 results).
-    const queries = buildQueries(city, state);
+    const queries = buildQueries(city, state, country);
     let mapsError = null;
     const dedup = new Map();
 
-    // 2 pages per query keeps cost reasonable now that we run more queries.
+    // 3 pages per query to maximize coverage.
     const searches = await Promise.allSettled(
-      queries.map((q) => textSearchPaged(q, 2))
+      queries.map((q) => textSearchPaged(q, 3))
     );
 
     for (const s of searches) {

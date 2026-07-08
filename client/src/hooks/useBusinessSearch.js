@@ -115,6 +115,7 @@ export const useBusinessSearch = (address) => {
     try {
       const { data } = await api.get('/business/search', {
         params: {
+          country: address.country,
           city: address.city || address.district,
           district: address.district,
           state: address.state,
@@ -134,7 +135,7 @@ export const useBusinessSearch = (address) => {
       setError(getErrorMessage(err, 'Could not load businesses.'));
       setStatus('error');
     }
-  }, [address?.city, address?.district, address?.state]);
+  }, [address?.country, address?.city, address?.district, address?.state]);
 
   useEffect(() => {
     fetchResults();
