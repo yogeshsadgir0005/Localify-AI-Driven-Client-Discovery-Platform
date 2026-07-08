@@ -38,7 +38,7 @@ const addressSchema = z.object({
   country: z.string().min(1, 'Select your country'),
   state: z.string().min(1, 'Select your state / region'),
   district: z.string().min(1, 'Select or enter your district / city'),
-  city: z.string().trim().min(2, 'Enter your city or town'),
+  city: z.string().trim().optional().or(z.literal('')),
 });
 
 const Toggle = ({ on, onClick }) => (
@@ -164,10 +164,10 @@ const LocationSection = () => {
           <div className="rounded-xl border border-border bg-surface-2 p-4">
             <div className="text-xs uppercase tracking-wide text-text-muted">Saved address</div>
             <div className="mt-1.5 font-display text-base font-semibold text-text">
-              {user.address.city}
+              {user.address.city || user.address.district}
             </div>
             <div className="text-sm text-text-muted">
-              {user.address.district}, {displayState}
+              {user.address.city ? `${user.address.district}, ` : ''}{displayState}
             </div>
             <div className="mt-0.5 text-xs text-text-muted">
               {displayCountry}
@@ -241,14 +241,14 @@ const LocationSection = () => {
           {/* City / Town (free text) */}
           <div>
             <label htmlFor="settings-city" className="mb-1.5 block text-sm text-text">
-              Enter your city / town
+              Town <span className="text-text-muted">(optional)</span>
             </label>
             <input
               id="settings-city"
               type="text"
               autoComplete="address-level2"
               className="input-base"
-              placeholder="e.g. Sinnar, Brooklyn, Shibuya"
+              placeholder="e.g. Sinnar, Brooklyn, Shibuya (optional)"
               {...register('city')}
             />
             {errors.city && (

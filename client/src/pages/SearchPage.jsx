@@ -96,10 +96,10 @@ const SearchPage = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{`Businesses in ${address.city} — Localify`}</title>
+        <title>{`Businesses in ${address.city || address.district} — Localify`}</title>
         <meta
           name="description"
-          content={`Discover offline-only local businesses in ${address.city}, ${address.district}, ${getStateLabelSmart(
+          content={`Discover offline-only local businesses in ${address.city || address.district}, ${getStateLabelSmart(
             address.state, address.country
           )}.`}
         />
@@ -115,7 +115,7 @@ const SearchPage = () => {
                 Businesses in
               </div>
               <h1 className="font-display text-xl font-bold text-text sm:text-2xl">
-                {address.city}, {address.district},{' '}
+                {address.city ? `${address.city}, ` : ''}{address.district},{' '}
                 {getStateLabelSmart(address.state, address.country)}
               </h1>
               {address.country && address.country !== 'IN' && (

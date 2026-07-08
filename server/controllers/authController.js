@@ -375,10 +375,10 @@ const updateAddress = async (req, res, next) => {
   try {
     const { country, state, district, city } = req.body || {};
 
-    if (!state || !district || !city || !city.trim()) {
+    if (!state || !district) {
       return res.status(422).json({
         success: false,
-        message: 'State, district and city are all required.',
+        message: 'Country, state and district are all required.',
       });
     }
 
@@ -393,7 +393,7 @@ const updateAddress = async (req, res, next) => {
       country: (country || 'IN').trim(),
       state: state.trim(),
       district: district.trim(),
-      city: city.trim(),
+      city: (city || '').trim(),
     };
     await user.save();
 

@@ -107,7 +107,7 @@ export const useBusinessSearch = (address) => {
   const [page, setPage] = useState(1);
 
   const fetchResults = useCallback(async () => {
-    if (!address?.city || !address?.district || !address?.state) {
+    if (!address?.district || !address?.state) {
       return;
     }
     setStatus('loading');
@@ -115,7 +115,7 @@ export const useBusinessSearch = (address) => {
     try {
       const { data } = await api.get('/business/search', {
         params: {
-          city: address.city,
+          city: address.city || address.district,
           district: address.district,
           state: address.state,
         },
