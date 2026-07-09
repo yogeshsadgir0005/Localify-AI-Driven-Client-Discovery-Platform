@@ -17,13 +17,6 @@
     min-height: 100vh;
   }
 
-  /* Hide generic PC cursor when using custom cursor */
-  @media (pointer: fine) {
-    *, *::before, *::after {
-      cursor: none !important;
-    }
-  }
-
   h1,
   h2,
   h3,
