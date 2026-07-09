@@ -277,7 +277,7 @@ const LandingPage = () => {
   }, { scope: mainRef });
 
   return (
-    <Layout>
+    <Layout noPadding>
       <Helmet>
         <title>Localify — Find the Hidden Businesses Your City Never Told You About</title>
       </Helmet>

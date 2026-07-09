@@ -36,11 +36,11 @@ const OfflineBanner = () => {
  * App shell: offline banner, navbar, main, footer.
  * The animated background is rendered once at the app root (see App.jsx).
  */
-const Layout = ({ children }) => (
+const Layout = ({ children, noPadding = false }) => (
   <div className="relative flex min-h-screen flex-col">
     <OfflineBanner />
     <Navbar />
-    <main className="flex-1">{children}</main>
+    <main className={`flex-1 ${noPadding ? '' : 'pt-20 sm:pt-24'}`}>{children}</main>
     <Footer />
   </div>
 );
