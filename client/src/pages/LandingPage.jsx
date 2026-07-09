@@ -47,6 +47,11 @@ const HOW_IT_WORKS = [
     desc: 'We sweep Google Maps for shops, malls, eateries and services around you.',
   },
   {
+    icon: Target,
+    title: 'Filter & prioritize',
+    desc: 'AI automatically hides spam and scores leads based on their digital footprint gaps.',
+  },
+  {
     icon: LayoutTemplate,
     title: 'Generate prototypes',
     desc: 'Generate an instant, bespoke website prototype tailored to the business you found.',
@@ -414,9 +419,9 @@ const LandingPage = () => {
               <p className="text-[9px] text-text-muted mt-1 leading-snug">Instantly hiding spam, duplicates, and irrelevant businesses.</p>
             </div>
 
-            {/* 4. Center-Right (Lower Middle) */}
+            {/* 4. Center-Left (Lower Middle) */}
             <div 
-              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[55%] md:right-[35%] md:left-[auto] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-3 w-full max-w-[11.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[50%] md:left-[40%] md:right-[auto] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-3 w-full max-w-[11.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '2.1s' }}
             >
               <Zap className="h-4 w-4 text-accent mb-1.5" />
@@ -472,7 +477,7 @@ const LandingPage = () => {
             <div className="mb-20 md:ml-auto md:w-1/2 md:pl-10 lg:pl-16 border-l border-primary/20">
               <span className="pill mb-4 border-primary/30 bg-primary/10 text-primary text-xs">The Process</span>
               <h2 className="text-balance font-display text-3xl font-bold text-text sm:text-4xl tracking-tight leading-tight">
-                Four steps from curiosity to a phone call.
+                Five steps from curiosity to a phone call.
               </h2>
             </div>
           </div>
