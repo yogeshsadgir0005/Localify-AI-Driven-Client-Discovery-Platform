@@ -377,29 +377,41 @@ const LandingPage = () => {
           </div>
 
           <div className="absolute inset-0 pointer-events-none z-40">
-            {/* Top Left */}
-            <div className="takeover-hud-card absolute top-[15%] left-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
+            {/* Top Left (Higher, pushed left) */}
+            <div 
+              className="takeover-hud-card absolute top-[18%] left-[8%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
+              style={{ animationDelay: '0s' }}
+            >
               <MapIcon className="h-6 w-6 text-primary mb-3" />
               <h4 className="font-bold text-base text-white">Hyper-Local Grid</h4>
               <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Scanning every coordinate within a 10km radius of your search location.</p>
             </div>
             
-            {/* Top Right */}
-            <div className="takeover-hud-card absolute top-[25%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block">
+            {/* Top Right (Lower, pushed inward) */}
+            <div 
+              className="takeover-hud-card absolute top-[35%] right-[15%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float-slow"
+              style={{ animationDelay: '1.2s' }}
+            >
               <Sparkles className="h-6 w-6 text-accent mb-3" />
               <h4 className="font-bold text-base text-white">AI Analysis</h4>
               <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Cross-referencing reviews and unstructured data to extract insights.</p>
             </div>
 
-            {/* Bottom Left */}
-            <div className="takeover-hud-card absolute bottom-[25%] left-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block">
+            {/* Bottom Left (Higher, pushed inward) */}
+            <div 
+              className="takeover-hud-card absolute bottom-[40%] left-[12%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float"
+              style={{ animationDelay: '2.5s' }}
+            >
               <Database className="h-6 w-6 text-primary mb-3" />
               <h4 className="font-bold text-base text-white">Deep Database</h4>
               <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Accessing hidden public records and local registries Google Maps misses.</p>
             </div>
 
-            {/* Bottom Right */}
-            <div className="takeover-hud-card absolute bottom-[15%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
+            {/* Bottom Right (Lower, pushed right) */}
+            <div 
+              className="takeover-hud-card absolute bottom-[20%] right-[8%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              style={{ animationDelay: '0.8s' }}
+            >
               <Zap className="h-6 w-6 text-accent mb-3" />
               <h4 className="font-bold text-base text-white">Real-Time Sync</h4>
               <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Pulling the freshest data instantly without waiting for manual scrapes.</p>
