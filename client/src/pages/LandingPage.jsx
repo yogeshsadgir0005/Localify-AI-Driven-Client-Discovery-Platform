@@ -399,7 +399,7 @@ const LandingPage = () => {
 
             {/* 3. Middle Right */}
             <div 
-              className="takeover-hud-card absolute top-[42%] right-[8%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
+              className="takeover-hud-card absolute top-[28%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
               style={{ animationDelay: '0.8s' }}
             >
               <Search className="h-6 w-6 text-primary mb-3" />
