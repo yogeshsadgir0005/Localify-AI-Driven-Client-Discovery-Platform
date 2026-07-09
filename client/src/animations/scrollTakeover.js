@@ -47,7 +47,6 @@ export const initScrollTakeover = (triggerElement, isDesktop = true) => {
     y: 0,
     scale: 1,
     duration: 0.4,
-    stagger: 0.2,
     ease: 'back.out(1.5)'
   }, 0.5);
 
