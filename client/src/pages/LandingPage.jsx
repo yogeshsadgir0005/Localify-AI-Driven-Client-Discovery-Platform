@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Map as MapIcon,
   Database,
+  LayoutTemplate,
 } from 'lucide-react';
 import Layout from '../layout/Layout';
 import { useAuth } from '../hooks/useAuth';
@@ -379,62 +380,72 @@ const LandingPage = () => {
           <div className="absolute inset-0 pointer-events-none z-40">
             {/* 1. Top Left */}
             <div 
-              className="takeover-hud-card absolute top-[22%] left-[5%] md:top-[28%] md:left-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[22%] left-[5%] md:top-[28%] md:left-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '0.2s' }}
             >
-              <MapIcon className="h-6 w-6 text-primary mb-3" />
-              <h4 className="font-bold text-base text-white">Hyper-Local Grid</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Scanning every coordinate within a 10km radius of your search location.</p>
+              <MapIcon className="h-5 w-5 text-primary mb-2" />
+              <h4 className="font-bold text-sm text-white">Hyper-Local Grid</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Scanning every coordinate within a 10km radius of your search location.</p>
             </div>
             
             {/* 2. Top Center (Overlapping the SVG) */}
             <div 
-              className="takeover-hud-card absolute top-[15%] left-[42%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float"
+              className="takeover-hud-card absolute top-[15%] left-[42%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float"
               style={{ animationDelay: '1.5s' }}
             >
-              <Sparkles className="h-6 w-6 text-accent mb-3" />
-              <h4 className="font-bold text-base text-white">AI Analysis</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Cross-referencing reviews and unstructured data to extract insights.</p>
+              <Sparkles className="h-5 w-5 text-accent mb-2" />
+              <h4 className="font-bold text-sm text-white">AI Analysis</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Cross-referencing reviews and unstructured data to extract insights.</p>
             </div>
 
             {/* 3. Middle Right */}
             <div 
-              className="takeover-hud-card absolute top-[28%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
+              className="takeover-hud-card absolute top-[28%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
               style={{ animationDelay: '0.8s' }}
             >
-              <Search className="h-6 w-6 text-primary mb-3" />
-              <h4 className="font-bold text-base text-white">Smart Filtering</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Instantly hiding spam, duplicates, and irrelevant businesses.</p>
+              <Search className="h-5 w-5 text-primary mb-2" />
+              <h4 className="font-bold text-sm text-white">Smart Filtering</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Instantly hiding spam, duplicates, and irrelevant businesses.</p>
             </div>
 
             {/* 4. Center-Left (Lower Middle) */}
             <div 
-              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[60%] md:right-[auto] md:left-[20%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[60%] md:right-[auto] md:left-[20%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '2.1s' }}
             >
-              <Zap className="h-6 w-6 text-accent mb-3" />
-              <h4 className="font-bold text-base text-white">Real-Time Sync</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Pulling the freshest data instantly without waiting for manual scrapes.</p>
+              <Zap className="h-5 w-5 text-accent mb-2" />
+              <h4 className="font-bold text-sm text-white">Real-Time Sync</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Pulling the freshest data instantly without waiting for manual scrapes.</p>
             </div>
 
             {/* 5. Bottom Center */}
             <div 
-              className="takeover-hud-card absolute bottom-[12%] left-[48%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float-slow"
+              className="takeover-hud-card absolute bottom-[12%] left-[48%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float-slow"
               style={{ animationDelay: '3.0s' }}
             >
-              <Database className="h-6 w-6 text-primary mb-3" />
-              <h4 className="font-bold text-base text-white">Deep Database</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Accessing hidden public records and local registries Google Maps misses.</p>
+              <Database className="h-5 w-5 text-primary mb-2" />
+              <h4 className="font-bold text-sm text-white">Deep Database</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Accessing hidden public records and local registries Google Maps misses.</p>
             </div>
 
             {/* 6. Far Bottom Right */}
             <div 
-              className="takeover-hud-card absolute bottom-[8%] left-[10%] md:bottom-[20%] md:left-[auto] md:right-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
+              className="takeover-hud-card absolute bottom-[8%] left-[10%] md:bottom-[20%] md:left-[auto] md:right-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
               style={{ animationDelay: '1.2s' }}
             >
-              <ShieldCheck className="h-6 w-6 text-accent mb-3" />
-              <h4 className="font-bold text-base text-white">Trust Verification</h4>
-              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Automatically checking contact details and business validity.</p>
+              <ShieldCheck className="h-5 w-5 text-accent mb-2" />
+              <h4 className="font-bold text-sm text-white">Trust Verification</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Automatically checking contact details and business validity.</p>
+            </div>
+
+            {/* 7. Center Right (AI Prototypes) */}
+            <div 
+              className="takeover-hud-card absolute bottom-[35%] right-[22%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-4 w-full max-w-[13rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
+              style={{ animationDelay: '2.6s' }}
+            >
+              <LayoutTemplate className="h-5 w-5 text-primary mb-2" />
+              <h4 className="font-bold text-sm text-white">AI Prototypes</h4>
+              <p className="text-[10px] text-text-muted mt-1 leading-snug">Generating instant, tailored website prototypes to pitch to local clients.</p>
             </div>
           </div>
         </section>
