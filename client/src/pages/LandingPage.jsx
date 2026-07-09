@@ -533,11 +533,7 @@ const LandingPage = () => {
 
         {/* CTA BANNER (Immersive Wrap) */}
         <section ref={ctaRef} className="relative overflow-hidden z-20 min-h-[90vh] flex items-center justify-center pb-16">
-          <div className="cta-spotlight-box absolute inset-0 pointer-events-none">
-            {/* Ambient glows bleeding to edges */}
-            <div className="absolute -left-1/4 -top-1/4 h-[70vw] w-[70vw] rounded-full bg-primary/10 blur-[120px]" />
-            <div className="absolute -bottom-1/4 -right-1/4 h-[70vw] w-[70vw] rounded-full bg-accent/10 blur-[120px]" />
-          </div>
+
 
           <div className="relative z-30 mx-auto w-full max-w-3xl px-4 py-24 text-center pointer-events-auto">
             <span className="pill mb-6 border-accent/40 bg-accent/10 text-accent shadow-[0_0_20px_rgba(79,70,229,0.2)] text-xs">
