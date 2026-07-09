@@ -376,33 +376,33 @@ const LandingPage = () => {
             </svg>
           </div>
 
-          <div className="absolute inset-0 flex flex-col justify-between px-4 sm:px-12 py-24 sm:py-32 pointer-events-none z-40">
-            <div className="flex justify-between w-full max-w-6xl mx-auto">
-              <div className="takeover-hud-card card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
-                <MapIcon className="h-6 w-6 text-primary mb-3" />
-                <h4 className="font-bold text-base text-white">Hyper-Local Grid</h4>
-                <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Scanning every coordinate within a 10km radius of your search location.</p>
-              </div>
-              
-              <div className="takeover-hud-card card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block mt-12">
-                <Sparkles className="h-6 w-6 text-accent mb-3" />
-                <h4 className="font-bold text-base text-white">AI Analysis</h4>
-                <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Cross-referencing reviews and unstructured data to extract insights.</p>
-              </div>
+          <div className="absolute inset-0 pointer-events-none z-40">
+            {/* Top Left */}
+            <div className="takeover-hud-card absolute top-[15%] left-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
+              <MapIcon className="h-6 w-6 text-primary mb-3" />
+              <h4 className="font-bold text-base text-white">Hyper-Local Grid</h4>
+              <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Scanning every coordinate within a 10km radius of your search location.</p>
+            </div>
+            
+            {/* Top Right */}
+            <div className="takeover-hud-card absolute top-[25%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block">
+              <Sparkles className="h-6 w-6 text-accent mb-3" />
+              <h4 className="font-bold text-base text-white">AI Analysis</h4>
+              <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Cross-referencing reviews and unstructured data to extract insights.</p>
             </div>
 
-            <div className="flex justify-between w-full max-w-5xl mx-auto mt-auto">
-              <div className="takeover-hud-card card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block mb-12">
-                <Database className="h-6 w-6 text-primary mb-3" />
-                <h4 className="font-bold text-base text-white">Deep Database</h4>
-                <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Accessing hidden public records and local registries Google Maps misses.</p>
-              </div>
+            {/* Bottom Left */}
+            <div className="takeover-hud-card absolute bottom-[25%] left-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block">
+              <Database className="h-6 w-6 text-primary mb-3" />
+              <h4 className="font-bold text-base text-white">Deep Database</h4>
+              <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Accessing hidden public records and local registries Google Maps misses.</p>
+            </div>
 
-              <div className="takeover-hud-card card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
-                <Zap className="h-6 w-6 text-accent mb-3" />
-                <h4 className="font-bold text-base text-white">Real-Time Sync</h4>
-                <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Pulling the freshest data instantly without waiting for manual scrapes.</p>
-              </div>
+            {/* Bottom Right */}
+            <div className="takeover-hud-card absolute bottom-[15%] right-[5%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[16rem] opacity-0 translate-y-10 will-change-transform rounded-2xl">
+              <Zap className="h-6 w-6 text-accent mb-3" />
+              <h4 className="font-bold text-base text-white">Real-Time Sync</h4>
+              <p className="text-xs text-text-muted mt-1.5 leading-relaxed">Pulling the freshest data instantly without waiting for manual scrapes.</p>
             </div>
           </div>
         </section>
