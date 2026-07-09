@@ -361,12 +361,17 @@ const LandingPage = () => {
           </div>
 
           <div className="takeover-map-container absolute inset-0 flex items-center justify-center will-change-transform">
-            <svg viewBox="0 0 800 600" className="w-[100vw] h-auto max-h-[100vh] opacity-40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path className="takeover-svg-path" d="M100 300 Q 250 100 400 300 T 700 300" stroke="#00D4AA" strokeWidth="4" strokeLinecap="round" />
-              <path className="takeover-svg-path" d="M150 400 Q 300 500 450 350 T 750 400" stroke="#4F46E5" strokeWidth="4" strokeLinecap="round" strokeDasharray="10 10" />
-              <circle className="takeover-svg-path" cx="400" cy="300" r="100" stroke="#FF5370" strokeWidth="2" />
-              <circle className="takeover-svg-path" cx="250" cy="200" r="15" stroke="#00D4AA" strokeWidth="6" />
-              <circle className="takeover-svg-path" cx="550" cy="450" r="15" stroke="#4F46E5" strokeWidth="6" />
+            <svg viewBox="0 0 800 600" className="w-[100vw] h-auto max-h-[100vh] opacity-60" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Primary Line */}
+              <path className="takeover-svg-path stroke-primary drop-shadow-[0_0_12px_rgba(108,99,255,0.6)]" d="M100 300 Q 250 100 400 300 T 700 300" strokeWidth="4" strokeLinecap="round" />
+              {/* Accent Dashed Line */}
+              <path className="takeover-svg-path stroke-accent drop-shadow-[0_0_12px_rgba(0,212,170,0.6)]" d="M150 400 Q 300 500 450 350 T 750 400" strokeWidth="4" strokeLinecap="round" strokeDasharray="10 10" />
+              {/* Central Radar Circle */}
+              <circle className="takeover-svg-path stroke-primary/40 drop-shadow-[0_0_20px_rgba(108,99,255,0.3)]" cx="400" cy="300" r="100" strokeWidth="2" />
+              {/* Primary Node */}
+              <circle className="takeover-svg-path stroke-primary fill-bg drop-shadow-[0_0_15px_rgba(108,99,255,0.8)]" cx="250" cy="200" r="15" strokeWidth="4" />
+              {/* Accent Node */}
+              <circle className="takeover-svg-path stroke-accent fill-bg drop-shadow-[0_0_15px_rgba(0,212,170,0.8)]" cx="550" cy="450" r="15" strokeWidth="4" />
             </svg>
           </div>
 
