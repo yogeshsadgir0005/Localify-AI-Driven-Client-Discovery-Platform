@@ -377,9 +377,9 @@ const LandingPage = () => {
           </div>
 
           <div className="absolute inset-0 pointer-events-none z-40">
-            {/* 1. Far Top Left */}
+            {/* 1. Top Left */}
             <div 
-              className="takeover-hud-card absolute top-[8%] left-[3%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[22%] left-[5%] md:top-[28%] md:left-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '0.2s' }}
             >
               <MapIcon className="h-6 w-6 text-primary mb-3" />
@@ -387,9 +387,9 @@ const LandingPage = () => {
               <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Scanning every coordinate within a 10km radius of your search location.</p>
             </div>
             
-            {/* 2. Top Right-Center (Pushed inward) */}
+            {/* 2. Top Center (Overlapping the SVG) */}
             <div 
-              className="takeover-hud-card absolute top-[12%] right-[25%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float"
+              className="takeover-hud-card absolute top-[15%] left-[42%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float"
               style={{ animationDelay: '1.5s' }}
             >
               <Sparkles className="h-6 w-6 text-accent mb-3" />
@@ -397,9 +397,9 @@ const LandingPage = () => {
               <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Cross-referencing reviews and unstructured data to extract insights.</p>
             </div>
 
-            {/* 3. Middle Left (Floating near the edge) */}
+            {/* 3. Middle Right */}
             <div 
-              className="takeover-hud-card absolute top-[45%] left-[8%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
+              className="takeover-hud-card absolute top-[42%] right-[8%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
               style={{ animationDelay: '0.8s' }}
             >
               <Search className="h-6 w-6 text-primary mb-3" />
@@ -407,9 +407,9 @@ const LandingPage = () => {
               <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Instantly hiding spam, duplicates, and irrelevant businesses.</p>
             </div>
 
-            {/* 4. Middle Right (Floating off edge) */}
+            {/* 4. Center-Left (Lower Middle) */}
             <div 
-              className="takeover-hud-card absolute top-[38%] right-[4%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[60%] md:right-[auto] md:left-[20%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '2.1s' }}
             >
               <Zap className="h-6 w-6 text-accent mb-3" />
@@ -417,9 +417,9 @@ const LandingPage = () => {
               <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">Pulling the freshest data instantly without waiting for manual scrapes.</p>
             </div>
 
-            {/* 5. Bottom Center-Left (Lower area) */}
+            {/* 5. Bottom Center */}
             <div 
-              className="takeover-hud-card absolute bottom-[10%] left-[28%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float-slow"
+              className="takeover-hud-card absolute bottom-[12%] left-[48%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden md:block animate-float-slow"
               style={{ animationDelay: '3.0s' }}
             >
               <Database className="h-6 w-6 text-primary mb-3" />
@@ -429,7 +429,7 @@ const LandingPage = () => {
 
             {/* 6. Far Bottom Right */}
             <div 
-              className="takeover-hud-card absolute bottom-[12%] right-[10%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
+              className="takeover-hud-card absolute bottom-[8%] left-[10%] md:bottom-[20%] md:left-[auto] md:right-[6%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float"
               style={{ animationDelay: '1.2s' }}
             >
               <ShieldCheck className="h-6 w-6 text-accent mb-3" />
