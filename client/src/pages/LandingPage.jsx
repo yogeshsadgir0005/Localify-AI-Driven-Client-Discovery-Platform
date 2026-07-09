@@ -421,7 +421,7 @@ const LandingPage = () => {
 
             {/* 4. Center-Left (Lower Middle) */}
             <div 
-              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[50%] md:left-[40%] md:right-[auto] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[50%] md:left-[32%] md:right-[auto] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '2.1s' }}
             >
               <Zap className="h-6 w-6 text-accent mb-3" />
