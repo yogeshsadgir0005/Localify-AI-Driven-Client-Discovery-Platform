@@ -283,10 +283,11 @@ const LandingPage = () => {
       </Helmet>
 
       <div ref={mainRef} className="relative">
+        {/* Global grid background spanning the entire landing page */}
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center bg-repeat opacity-20 pointer-events-none" />
+        
         {/* HERO */}
         <section className="relative overflow-visible pt-24 pb-32 lg:pt-32 lg:pb-40 min-h-[85vh] flex flex-col justify-start z-20">
-          {/* Subtle grid background to match layout */}
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-30 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
           
           <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
             <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
@@ -353,7 +354,7 @@ const LandingPage = () => {
         </section>
 
         {/* SCROLL TAKEOVER */}
-        <section ref={scrollTakeoverRef} className="relative h-screen w-full bg-surface-2 overflow-hidden flex items-center justify-center border-t border-white/5 z-10 pt-16">
+        <section ref={scrollTakeoverRef} className="relative h-screen w-full overflow-hidden flex items-center justify-center z-10 pt-16">
           <div className="takeover-intro-text absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none">
             <span className="pill mb-3 border-accent/40 bg-accent/10 text-accent shadow-[0_0_20px_rgba(79,70,229,0.15)] text-xs">Deep Discovery</span>
             <h2 className="font-display text-3xl font-bold text-white text-center max-w-xl px-4 text-balance leading-tight tracking-tight sm:text-4xl">
@@ -387,7 +388,7 @@ const LandingPage = () => {
         </section>
 
         {/* HOW IT WORKS (Offset Editorial Layout) */}
-        <section ref={hiwRef} id="how-it-works" className="relative z-10 w-full overflow-hidden bg-bg py-24 sm:py-32">
+        <section ref={hiwRef} id="how-it-works" className="relative z-10 w-full overflow-hidden py-24 sm:py-32">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-20 md:ml-auto md:w-1/2 md:pl-10 lg:pl-16 border-l border-primary/20">
               <span className="pill mb-4 border-primary/30 bg-primary/10 text-primary text-xs">The Process</span>
@@ -416,7 +417,7 @@ const LandingPage = () => {
         </section>
 
         {/* FEATURES — Asymmetrical Bento Box */}
-        <section ref={featuresRef} className="bg-surface/40 relative z-10 overflow-hidden py-24 sm:py-32 border-t border-white/5">
+        <section ref={featuresRef} className="relative z-10 overflow-hidden py-24 sm:py-32">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-16 flex flex-col items-center text-center">
               <span className="pill mb-5 border-primary/40 bg-primary/10 text-primary shadow-[0_0_20px_rgba(0,212,170,0.15)] text-xs">Why Localify</span>
@@ -447,7 +448,7 @@ const LandingPage = () => {
         </section>
 
         {/* CTA BANNER (Immersive Wrap) */}
-        <section ref={ctaRef} className="relative overflow-hidden z-20 min-h-[90vh] flex items-center justify-center bg-bg pb-16">
+        <section ref={ctaRef} className="relative overflow-hidden z-20 min-h-[90vh] flex items-center justify-center pb-16">
           <div className="cta-spotlight-box absolute inset-x-4 inset-y-8 sm:inset-x-8 sm:inset-y-16 rounded-[2.5rem] border border-border bg-gradient-to-b from-surface/50 to-bg pointer-events-none">
             {/* Ambient glows bleeding to edges */}
             <div className="absolute -left-1/4 -top-1/4 h-[70vw] w-[70vw] rounded-full bg-primary/10 blur-[120px]" />
