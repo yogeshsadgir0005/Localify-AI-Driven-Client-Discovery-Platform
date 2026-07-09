@@ -1,12 +1,41 @@
 import { Link } from 'react-router-dom';
 import { Twitter, Linkedin, Github, Mail } from 'lucide-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useRef } from 'react';
+import { prefersReducedMotion } from '../animations/utilities';
 
-const Footer = () => (
-  <footer className="border-t border-border bg-bg/50 pt-16 pb-8 backdrop-blur-sm">
+gsap.registerPlugin(ScrollTrigger);
+
+const Footer = () => {
+  const footerRef = useRef(null);
+
+  useGSAP(() => {
+    if (prefersReducedMotion()) return;
+
+    gsap.fromTo('.footer-col', 
+      { opacity: 0, y: 30 },
+      { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.8, 
+        stagger: 0.1, 
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: 'top 90%'
+        }
+      }
+    );
+  }, { scope: footerRef });
+
+  return (
+  <footer ref={footerRef} className="border-t border-border bg-bg/50 pt-16 pb-8 backdrop-blur-sm">
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="grid grid-cols-1 gap-12 md:grid-cols-4 lg:gap-8">
         {/* Brand Column */}
-        <div className="flex flex-col items-start space-y-6 md:col-span-1">
+        <div className="footer-col flex flex-col items-start space-y-6 md:col-span-1">
           <Link to="/" className="flex items-center">
             <img src="/logo4.png" alt="Localify" className="h-16 w-auto -my-4 object-contain" />
           </Link>
@@ -28,7 +57,7 @@ const Footer = () => (
 
         {/* Links Columns */}
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-3">
-          <div className="space-y-4">
+          <div className="footer-col space-y-4">
             <h4 className="font-display text-sm font-semibold tracking-wider text-text uppercase">Product</h4>
             <ul className="space-y-3 text-sm text-text-muted">
               <li><Link to="/search" className="transition hover:text-primary">Find Businesses</Link></li>
@@ -38,7 +67,7 @@ const Footer = () => (
             </ul>
           </div>
 
-          <div className="space-y-4">
+          <div className="footer-col space-y-4">
             <h4 className="font-display text-sm font-semibold tracking-wider text-text uppercase">Company</h4>
             <ul className="space-y-3 text-sm text-text-muted">
               <li><Link to="/about" className="transition hover:text-primary">About Us</Link></li>
@@ -48,7 +77,7 @@ const Footer = () => (
             </ul>
           </div>
 
-          <div className="space-y-4">
+          <div className="footer-col space-y-4">
             <h4 className="font-display text-sm font-semibold tracking-wider text-text uppercase">Legal</h4>
             <ul className="space-y-3 text-sm text-text-muted">
               <li><Link to="/privacy" className="transition hover:text-primary">Privacy Policy</Link></li>
@@ -71,6 +100,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

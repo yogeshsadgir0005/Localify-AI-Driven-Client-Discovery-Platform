@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { motion, useReducedMotion } from 'motion/react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import {
   MapPin,
   Search,
@@ -16,9 +17,20 @@ import {
   Star,
   Phone,
   ShieldCheck,
+  Map as MapIcon,
 } from 'lucide-react';
 import Layout from '../layout/Layout';
 import { useAuth } from '../hooks/useAuth';
+import Magnetic from '../components/Magnetic';
+
+import { initHeroAnimation } from '../animations/hero';
+import { initScrollTakeover } from '../animations/scrollTakeover';
+import { initSectionReveals } from '../animations/reveal';
+import { initParallax, initTextParallax } from '../animations/parallax';
+import { initHoverEffects } from '../animations/hover';
+import { initHowItWorks } from '../animations/howItWorks';
+import { initFeatures3D } from '../animations/features';
+import { initCtaSpotlight } from '../animations/cta';
 
 const HOW_IT_WORKS = [
   {
@@ -38,7 +50,6 @@ const HOW_IT_WORKS = [
   },
 ];
 
-// Bento-style features with span hints for a non-uniform, designed grid.
 const FEATURES = [
   {
     icon: Map,
@@ -79,7 +90,6 @@ const STATS = [
   { value: 100, suffix: '%', label: 'Free forever' },
 ];
 
-// Static sample cards for the hero product preview.
 const PREVIEW_CARDS = [
   {
     name: 'Sharma General Stores',
@@ -104,50 +114,30 @@ const PREVIEW_CARDS = [
   },
 ];
 
-/** Animated count-up that triggers when scrolled into view. */
+/** Animated count-up that triggers when scrolled into view using ScrollTrigger. */
 const CountUp = ({ value, suffix }) => {
   const ref = useRef(null);
   const [display, setDisplay] = useState(0);
-  const reduce = useReducedMotion();
 
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return undefined;
-
-    if (reduce) {
+  useGSAP(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
       setDisplay(value);
-      return undefined;
+      return;
     }
 
-    let raf;
-    let started = false;
-    const duration = 1600;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !started) {
-            started = true;
-            const start = performance.now();
-            const tick = (now) => {
-              const progress = Math.min((now - start) / duration, 1);
-              const eased = 1 - Math.pow(1 - progress, 3);
-              setDisplay(Math.round(eased * value));
-              if (progress < 1) raf = requestAnimationFrame(tick);
-            };
-            raf = requestAnimationFrame(tick);
-          }
-        });
+    const proxy = { val: 0 };
+    gsap.to(proxy, {
+      val: value,
+      duration: 1.6,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: ref.current,
+        start: 'top 80%',
       },
-      { threshold: 0.4 }
-    );
-
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [value, reduce]);
+      onUpdate: () => setDisplay(Math.round(proxy.val))
+    });
+  }, { scope: ref });
 
   return (
     <span ref={ref}>
@@ -157,21 +147,10 @@ const CountUp = ({ value, suffix }) => {
   );
 };
 
-/** The floating "app preview" panel shown beside the hero copy. */
-const HeroPreview = ({ reduce }) => (
-  <motion.div
-    initial={reduce ? false : { opacity: 0, y: 30, rotate: -2 }}
-    animate={{ opacity: 1, y: 0, rotate: 0 }}
-    transition={{ duration: 0.6, delay: 0.2 }}
-    className="relative mx-auto w-full max-w-md"
-  >
-    {/* Glow behind the panel */}
-    <div
-      aria-hidden="true"
-      className="absolute -inset-6 -z-10 rounded-[2rem] bg-glow-primary blur-2xl"
-    />
+const HeroPreview = () => (
+  <div className="hero-preview-panel relative mx-auto w-full max-w-md opacity-0 translate-y-8 rotate-[-2deg] will-change-transform">
+    <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-glow-primary blur-2xl" />
     <div className="card-base overflow-hidden p-4 sm:p-5">
-      {/* Fake top bar */}
       <div className="mb-4 flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full bg-error/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-primary/60" />
@@ -183,12 +162,9 @@ const HeroPreview = ({ reduce }) => (
 
       <div className="space-y-3">
         {PREVIEW_CARDS.map((c, i) => (
-          <motion.div
+          <div
             key={c.name}
-            initial={reduce ? false : { opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.4 + i * 0.12 }}
-            className="rounded-xl border border-border bg-surface-2 p-3.5"
+            className="hero-preview-card rounded-xl border border-border bg-surface-2 p-3.5 opacity-0 translate-x-5 will-change-transform"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-display text-sm font-semibold text-text">
@@ -212,20 +188,12 @@ const HeroPreview = ({ reduce }) => (
                 {c.rating} · {c.reviews}
               </span>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
 
-    {/* Floating AI-summary chip */}
-    <motion.div
-      initial={reduce ? false : { opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, delay: 0.9 }}
-      className={`absolute -bottom-5 -right-3 max-w-[12rem] rounded-2xl border border-border bg-surface p-3 shadow-lg shadow-black/50 ${
-        reduce ? '' : 'animate-float'
-      }`}
-    >
+    <div className="hero-preview-chip absolute -bottom-5 -right-3 max-w-[12rem] rounded-2xl border border-border bg-surface p-3 shadow-lg shadow-black/50 opacity-0 scale-90 will-change-transform">
       <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
         <Sparkles className="h-3.5 w-3.5" />
         AI summary
@@ -234,14 +202,18 @@ const HeroPreview = ({ reduce }) => (
         “A beloved neighbourhood store known for friendly service and fair
         prices…”
       </p>
-    </motion.div>
-  </motion.div>
+    </div>
+  </div>
 );
 
 const LandingPage = () => {
-  const reduce = useReducedMotion();
   const { isAuthenticated, hasAddress } = useAuth();
+  const mainRef = useRef(null);
+  const scrollTakeoverRef = useRef(null);
+  const hiwRef = useRef(null);
+  const hiwContainerRef = useRef(null);
   const featuresRef = useRef(null);
+  const ctaRef = useRef(null);
 
   const primaryTo = isAuthenticated
     ? hasAddress
@@ -250,283 +222,262 @@ const LandingPage = () => {
     : '/signup';
   const primaryLabel = isAuthenticated ? 'Go to Search' : 'Get Started Free';
 
-  const scrollToFeatures = () => {
-    featuresRef.current?.scrollIntoView({
-      behavior: reduce ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
+  useGSAP(() => {
+    let heroCleanup = () => {};
+    let takeoverTimeline = null;
 
-  const container = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.08 } },
-  };
-  const item = {
-    hidden: reduce ? { opacity: 1 } : { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-  };
+    let mm = gsap.matchMedia();
+
+    // DESKTOP ( >= 768px )
+    mm.add("(min-width: 768px)", () => {
+      heroCleanup = initHeroAnimation(true);
+      takeoverTimeline = initScrollTakeover(scrollTakeoverRef.current, true);
+      
+      const hiwTimeline = initHowItWorks(hiwRef.current, hiwContainerRef.current, true);
+      initFeatures3D(featuresRef.current, true);
+      const ctaCleanup = initCtaSpotlight(ctaRef.current, true);
+
+      initSectionReveals(gsap.utils.toArray('.reveal-section'), true);
+      initParallax(mainRef.current, true);
+      initTextParallax(mainRef.current);
+      
+      const hoverCleanup = initHoverEffects(gsap.utils.toArray('.hover-card'));
+
+      return () => {
+        heroCleanup();
+        if (takeoverTimeline) takeoverTimeline.kill();
+        if (hiwTimeline) hiwTimeline.kill();
+        if (ctaCleanup) ctaCleanup();
+        if (hoverCleanup) hoverCleanup();
+      };
+    });
+
+    // MOBILE ( < 768px )
+    mm.add("(max-width: 767px)", () => {
+      heroCleanup = initHeroAnimation(false);
+      takeoverTimeline = initScrollTakeover(scrollTakeoverRef.current, false);
+      
+      const hiwTimeline = initHowItWorks(hiwRef.current, hiwContainerRef.current, false);
+      initFeatures3D(featuresRef.current, false);
+      const ctaCleanup = initCtaSpotlight(ctaRef.current, false);
+
+      initSectionReveals(gsap.utils.toArray('.reveal-section'), false);
+      initParallax(mainRef.current, false);
+
+      return () => {
+        heroCleanup();
+        if (takeoverTimeline) takeoverTimeline.kill();
+        if (hiwTimeline) hiwTimeline.kill();
+        if (ctaCleanup) ctaCleanup();
+      };
+    });
+
+    return () => mm.revert();
+  }, { scope: mainRef });
 
   return (
     <Layout>
       <Helmet>
         <title>Localify — Find the Hidden Businesses Your City Never Told You About</title>
-        <meta
-          name="description"
-          content="Discover local businesses, shops, malls and services in your city — including the offline-only ones without websites. Contact details and AI summaries included, free forever."
-        />
-        <meta property="og:title" content="Localify — Discover Hidden Local Businesses" />
-        <meta
-          property="og:description"
-          content="Find local shops, malls and services in your city, with phone numbers, maps and AI summaries."
-        />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Localify — Discover Hidden Local Businesses" />
-        <meta
-          name="twitter:description"
-          content="Find local shops, malls and services in your city, with phone numbers, maps and AI summaries."
-        />
       </Helmet>
 
-      {/* HERO — background motion is provided site-wide by Layout */}
-      <section className="relative overflow-hidden">
+      <div ref={mainRef} className="relative">
+        {/* Parallax abstract elements */}
+        <div className="parallax-bg pointer-events-none absolute left-0 top-1/4 h-96 w-96 rounded-full bg-glow-primary blur-3xl opacity-30" />
+        <div className="parallax-bg pointer-events-none absolute right-0 top-3/4 h-[30rem] w-[30rem] rounded-full bg-glow-accent blur-3xl opacity-20" />
 
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:pb-24 lg:pt-12">
-          {/* Left: copy */}
-          <div className="text-center lg:text-left">
-            <motion.span
-              initial={reduce ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="pill mb-6 border-primary/40 bg-primary/10 text-primary"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Powered by Google Maps + local AI
-            </motion.span>
-
-            <motion.h1
-              initial={reduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-balance font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-text sm:text-5xl xl:text-6xl"
-            >
-              Find the{' '}
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Hidden Businesses
-              </span>{' '}
-              Your City Never Told You About
-            </motion.h1>
-
-            <motion.p
-              initial={reduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="mx-auto mt-6 max-w-xl text-base text-text-muted sm:text-lg lg:mx-0"
-            >
-              Thousands of shops, malls and family-run businesses operate entirely
-              offline. Localify uncovers them across your city, surfaces their
-              contact details, and explains what they do with instant AI summaries.
-            </motion.p>
-
-            <motion.div
-              initial={reduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
-            >
-              <motion.div whileTap={reduce ? undefined : { scale: 0.96 }}>
-                <Link to={primaryTo} className="btn-primary px-7 py-3.5 text-base">
-                  {primaryLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </motion.div>
-              <motion.button
-                whileTap={reduce ? undefined : { scale: 0.96 }}
-                type="button"
-                onClick={scrollToFeatures}
-                className="btn-ghost px-7 py-3.5 text-base"
-              >
-                See How It Works
-              </motion.button>
-            </motion.div>
-
-            {/* Trust row */}
-            <motion.div
-              initial={reduce ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-text-muted lg:justify-start"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-accent" />
-                No spam, ever
+        {/* HERO */}
+        <section className="relative overflow-hidden">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:pb-24 lg:pt-20">
+            <div className="text-center lg:text-left z-10">
+              <span className="hero-pill pill mb-6 border-primary/40 bg-primary/10 text-primary opacity-0 translate-y-4 will-change-transform">
+                <Sparkles className="h-3.5 w-3.5" />
+                Powered by Google Maps + local AI
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BadgeCheck className="h-4 w-4 text-accent" />
-                Free forever
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Zap className="h-4 w-4 text-accent" />
-                Instant results
-              </span>
-            </motion.div>
-          </div>
 
-          {/* Right: product preview */}
-          <div className="relative">
-            <HeroPreview reduce={reduce} />
-          </div>
-        </div>
-      </section>
+              <h1 className="hero-title text-balance font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-text sm:text-5xl xl:text-6xl overflow-hidden">
+                Find the{' '}
+                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Hidden Businesses
+                </span>{' '}
+                Your City Never Told You About
+              </h1>
 
-      {/* HOW IT WORKS */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="mb-14 text-center">
-          <span className="pill mb-3 border-accent/40 bg-accent/10 text-accent">
-            How it works
-          </span>
-          <h2 className="text-balance font-display text-3xl font-bold text-text sm:text-4xl">
-            Three steps from curiosity to a phone call
-          </h2>
-        </div>
-
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          className="relative grid gap-6 md:grid-cols-3"
-        >
-          {/* connecting line on desktop */}
-          <div
-            aria-hidden="true"
-            className="absolute left-0 right-0 top-12 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block"
-          />
-          {HOW_IT_WORKS.map((step, i) => (
-            <motion.div
-              key={step.title}
-              variants={item}
-              className="card-base relative p-7"
-            >
-              <div className="mb-5 inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary ring-1 ring-border">
-                <step.icon className="h-6 w-6" />
-              </div>
-              <div className="mb-1 font-display text-sm font-bold text-accent">
-                Step {i + 1}
-              </div>
-              <h3 className="font-display text-xl font-semibold text-text">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-text-muted">
-                {step.desc}
+              <p className="hero-desc mx-auto mt-6 max-w-xl text-base text-text-muted sm:text-lg lg:mx-0 opacity-0 translate-y-4 will-change-transform">
+                Thousands of shops, malls and family-run businesses operate entirely
+                offline. Localify uncovers them across your city, surfaces their
+                contact details, and explains what they do with instant AI summaries.
               </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
 
-      {/* FEATURES — bento grid */}
-      <section ref={featuresRef} className="scroll-mt-20 border-y border-border bg-surface/40">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="mb-14 text-center">
-            <span className="pill mb-3 border-primary/40 bg-primary/10 text-primary">
-              Why Localify
-            </span>
-            <h2 className="text-balance font-display text-3xl font-bold text-text sm:text-4xl">
-              Built around the businesses the internet forgot
+              <div className="hero-buttons mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start opacity-0 translate-y-4 will-change-transform">
+                <Magnetic strength={0.4}>
+                  <Link to={primaryTo} className="btn-primary px-7 py-3.5 text-base">
+                    {primaryLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Magnetic>
+                <Magnetic strength={0.3}>
+                  <a href="#how-it-works" className="btn-ghost px-7 py-3.5 text-base">
+                    See How It Works
+                  </a>
+                </Magnetic>
+              </div>
+
+              <div className="hero-trust mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-text-muted lg:justify-start opacity-0">
+                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />No spam, ever</span>
+                <span className="inline-flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-accent" />Free forever</span>
+                <span className="inline-flex items-center gap-1.5"><Zap className="h-4 w-4 text-accent" />Instant results</span>
+              </div>
+            </div>
+
+            <div className="relative z-10">
+              <HeroPreview />
+            </div>
+          </div>
+        </section>
+
+        {/* SCROLL TAKEOVER */}
+        <section ref={scrollTakeoverRef} className="relative h-screen w-full bg-surface-2 overflow-hidden flex items-center justify-center border-y border-border z-20">
+          <div className="takeover-intro-text absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none">
+            <span className="pill mb-4 border-accent/40 bg-accent/10 text-accent">Deep Discovery</span>
+            <h2 className="font-display text-4xl font-bold text-white text-center max-w-2xl px-4 text-balance">
+              We look past the first page of Google to find what really matters.
             </h2>
           </div>
 
-          <motion.div
-            variants={container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.15 }}
-            className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {FEATURES.map((f) => (
-              <motion.div
-                key={f.title}
-                variants={item}
-                whileHover={reduce ? undefined : { y: -4 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className={`card-base relative overflow-hidden p-6 ${f.span} ${
-                  f.accent
-                    ? 'bg-gradient-to-br from-primary/10 via-surface to-accent/5'
-                    : ''
-                }`}
-              >
+          <div className="takeover-map-container absolute inset-0 flex items-center justify-center will-change-transform">
+            {/* Massive Abstract Vector Map */}
+            <svg viewBox="0 0 800 600" className="w-[80vw] h-auto max-h-[80vh] opacity-80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path className="takeover-svg-path" d="M100 300 Q 250 100 400 300 T 700 300" stroke="#00D4AA" strokeWidth="4" strokeLinecap="round" />
+              <path className="takeover-svg-path" d="M150 400 Q 300 500 450 350 T 750 400" stroke="#4F46E5" strokeWidth="4" strokeLinecap="round" strokeDasharray="10 10" />
+              <circle className="takeover-svg-path" cx="400" cy="300" r="100" stroke="#FF5370" strokeWidth="2" />
+              <circle className="takeover-svg-path" cx="250" cy="200" r="15" stroke="#00D4AA" strokeWidth="6" />
+              <circle className="takeover-svg-path" cx="550" cy="450" r="15" stroke="#4F46E5" strokeWidth="6" />
+            </svg>
+          </div>
+
+          <div className="absolute inset-0 flex items-center justify-around px-10 pointer-events-none z-40">
+            <div className="takeover-hud-card card-base bg-surface/90 backdrop-blur-md p-5 max-w-xs opacity-0 translate-y-10 scale-90 will-change-transform">
+              <MapIcon className="h-8 w-8 text-primary mb-3" />
+              <h4 className="font-bold text-lg">Hyper-Local Grid</h4>
+              <p className="text-sm text-text-muted mt-2">Scanning every coordinate within a 10km radius of your search.</p>
+            </div>
+            
+            <div className="takeover-hud-card card-base bg-surface/90 backdrop-blur-md p-5 max-w-xs opacity-0 translate-y-10 scale-90 will-change-transform mt-64">
+              <Zap className="h-8 w-8 text-accent mb-3" />
+              <h4 className="font-bold text-lg">Real-Time Sync</h4>
+              <p className="text-sm text-text-muted mt-2">Pulling the freshest data instantly without waiting for manual scrapes.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS (Horizontal Scroll) */}
+        <section ref={hiwRef} id="how-it-works" className="relative z-10 w-full overflow-hidden bg-bg py-20 sm:py-32">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="mb-14 text-center md:text-left">
+              <span className="pill mb-3 border-accent/40 bg-accent/10 text-accent">How it works</span>
+              <h2 className="text-balance font-display text-3xl font-bold text-text sm:text-4xl">
+                Three steps from curiosity to a phone call
+              </h2>
+            </div>
+          </div>
+
+          {/* Horizontal scroll container */}
+          <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+            <div ref={hiwContainerRef} className="flex gap-8 w-[max-content] pb-8 pr-[50vw]">
+              <div className="hiw-progress-line absolute top-1/2 left-4 h-1 w-[200vw] -translate-y-1/2 bg-gradient-to-r from-primary/50 to-accent/50 -z-10 rounded-full hidden md:block" />
+              {HOW_IT_WORKS.map((step, i) => (
+                <div key={step.title} className="hiw-card card-base relative p-10 w-[85vw] md:w-[28rem] flex-shrink-0 bg-surface/80 backdrop-blur-md">
+                  <div className="mb-6 inline-grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary ring-1 ring-border shadow-lg">
+                    <step.icon className="h-8 w-8" />
+                  </div>
+                  <div className="mb-2 font-display text-base font-bold text-accent tracking-widest uppercase">Step {i + 1}</div>
+                  <h3 className="font-display text-2xl font-semibold text-text">{step.title}</h3>
+                  <p className="mt-4 text-base leading-relaxed text-text-muted">{step.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES — 3D Stacking */}
+        <section ref={featuresRef} className="border-y border-border bg-surface/40 relative z-10 overflow-hidden">
+          <div className="mx-auto max-w-6xl px-4 py-32 sm:px-6">
+            <div className="mb-20 text-center">
+              <span className="pill mb-3 border-primary/40 bg-primary/10 text-primary">Why Localify</span>
+              <h2 className="text-balance font-display text-4xl font-bold text-text sm:text-5xl">
+                Built around the businesses the internet forgot
+              </h2>
+            </div>
+
+            <div className="feature-grid-container grid gap-6 sm:grid-cols-2 lg:grid-cols-3 perspective-[1500px]">
+              {FEATURES.map((f) => (
                 <div
-                  className={`mb-4 inline-grid h-11 w-11 place-items-center rounded-xl ${
-                    f.accent
-                      ? 'bg-primary/15 text-primary'
-                      : 'bg-accent/10 text-accent'
+                  key={f.title}
+                  className={`feature-3d-card hover-card card-base relative overflow-hidden p-8 ${f.span} ${
+                    f.accent ? 'bg-gradient-to-br from-primary/10 via-surface to-accent/5' : ''
                   }`}
                 >
-                  <f.icon className="h-5 w-5" />
+                  <div className={`mb-4 inline-grid h-11 w-11 place-items-center rounded-xl ${
+                    f.accent ? 'bg-primary/15 text-primary' : 'bg-accent/10 text-accent'
+                  }`}>
+                    <f.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-display text-lg font-semibold text-text">{f.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">{f.desc}</p>
                 </div>
-                <h3 className="font-display text-lg font-semibold text-text">
-                  {f.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-text-muted">
-                  {f.desc}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {/* STATS */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="grid gap-6 sm:grid-cols-3">
-          {STATS.map((s) => (
-            <div key={s.label} className="card-base p-8 text-center">
-              <div className="font-display text-4xl font-extrabold sm:text-5xl">
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  <CountUp value={s.value} suffix={s.suffix} />
-                </span>
+        {/* STATS */}
+        <section className="reveal-section mx-auto max-w-6xl px-4 py-20 sm:px-6 relative z-10">
+          <div className="grid gap-6 sm:grid-cols-3">
+            {STATS.map((s) => (
+              <div key={s.label} className="reveal-card card-base p-8 text-center">
+                <div className="font-display text-4xl font-extrabold sm:text-5xl">
+                  <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <CountUp value={s.value} suffix={s.suffix} />
+                  </span>
+                </div>
+                <div className="mt-2 text-sm font-medium text-text-muted">{s.label}</div>
               </div>
-              <div className="mt-2 text-sm font-medium text-text-muted">
-                {s.label}
+            ))}
+          </div>
+        </section>
+
+        {/* CTA BANNER */}
+        <section ref={ctaRef} className="relative overflow-hidden px-4 py-40 sm:px-6 z-10 min-h-screen flex items-center justify-center">
+          <div className="cta-spotlight-box relative w-full max-w-6xl overflow-hidden rounded-[3rem] border border-border bg-gradient-to-br from-surface to-bg p-12 text-center sm:p-24 shadow-[0_0_100px_rgba(0,212,170,0.1)]">
+            {/* Ambient glows */}
+            <div className="pointer-events-none absolute -left-1/4 -top-1/4 h-[50vw] w-[50vw] rounded-full bg-primary/20 blur-[100px]" />
+            <div className="pointer-events-none absolute -bottom-1/4 -right-1/4 h-[50vw] w-[50vw] rounded-full bg-accent/20 blur-[100px]" />
+
+            <div className="relative z-20 mx-auto max-w-4xl">
+              <span className="pill mb-8 border-accent/40 bg-accent/10 text-accent">
+                Start Exploring
+              </span>
+              <h2 className="cta-title text-balance font-display text-5xl font-black uppercase tracking-tighter text-text sm:text-7xl lg:text-8xl mb-8">
+                {isAuthenticated ? 'Pick up where you left off' : 'Ready to find the hidden gems?'}
+              </h2>
+              <p className="mx-auto mb-12 max-w-xl text-lg text-text-muted sm:text-xl">
+                {isAuthenticated
+                  ? 'Jump back into search and find the offline businesses thriving right around the corner.'
+                  : 'Join today and discover the shops, services, and eateries that Google Maps forgot.'}
+              </p>
+              <div className="flex justify-center">
+                <Magnetic strength={0.5}>
+                  <Link to={primaryTo} className="btn-primary rounded-2xl px-10 py-5 text-lg font-bold">
+                    {primaryLabel}
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Link>
+                </Magnetic>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA BANNER */}
-      <section className="px-4 pb-24 sm:px-6">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/20 via-surface to-accent/10 p-10 text-center sm:p-16">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-glow-primary blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-glow-accent blur-3xl"
-          />
-          <h2 className="text-balance font-display text-3xl font-bold text-text sm:text-4xl">
-            {isAuthenticated
-              ? 'Pick up where you left off'
-              : 'Start discovering today'}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-text-muted">
-            {isAuthenticated
-              ? 'Jump back into search and find the offline businesses thriving right around the corner.'
-              : 'Create a free account and find the offline businesses thriving right around the corner from you.'}
-          </p>
-          <motion.div
-            whileTap={reduce ? undefined : { scale: 0.96 }}
-            className="mt-8 inline-block"
-          >
-            <Link to={primaryTo} className="btn-primary px-8 py-4 text-base">
-              {primaryLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
     </Layout>
   );
 };

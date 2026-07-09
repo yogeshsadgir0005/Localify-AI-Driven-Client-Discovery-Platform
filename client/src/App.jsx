@@ -12,6 +12,8 @@ import { Toaster } from 'react-hot-toast';
 import { AlertTriangle } from 'lucide-react';
 import Layout from './layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import LenisProvider from './components/LenisProvider';
+import CustomCursor from './components/CustomCursor';
 
 // Route-level lazy loading.
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -301,7 +303,9 @@ const App = () => {
     <HelmetProvider>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <ErrorBoundary>
-        <BackgroundFX />
+          <LenisProvider>
+            <CustomCursor />
+            <BackgroundFX />
         <Toaster
           position="top-center"
           toastOptions={{
@@ -444,6 +448,7 @@ const App = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </LenisProvider>
       </ErrorBoundary>
     </GoogleOAuthProvider>
   </HelmetProvider>
