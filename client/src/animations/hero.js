@@ -15,15 +15,15 @@ export const initHeroAnimation = (isDesktop = true) => {
     return () => {};
   }
 
-  const splitTitle = new SplitText('.hero-title', { type: 'words,chars' });
+  const splitTitle = new SplitText('.hero-title', { type: 'lines' });
   const tl = gsap.timeline({ delay: 0.1 });
   
   // Conditionally disable some heavier effects on mobile
-  const staggerAmount = isDesktop ? 0.02 : 0.01;
+  const staggerAmount = isDesktop ? 0.1 : 0.05;
   const initialBlur = isDesktop ? 'blur(8px)' : 'blur(0px)'; // Blur is expensive on mobile
 
   tl.to('.hero-pill', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
-    .fromTo(splitTitle.chars, 
+    .fromTo(splitTitle.lines, 
       { yPercent: 120, opacity: 0, filter: initialBlur },
       { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration: 0.8, stagger: staggerAmount, ease: 'power4.out' },
       "-=0.4"
