@@ -414,9 +414,9 @@ const LandingPage = () => {
               <p className="text-[9px] text-text-muted mt-1 leading-snug">Instantly hiding spam, duplicates, and irrelevant businesses.</p>
             </div>
 
-            {/* 4. Center-Left (Lower Middle) */}
+            {/* 4. Center-Right (Lower Middle) */}
             <div 
-              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[60%] md:right-[auto] md:left-[20%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-3 w-full max-w-[11.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
+              className="takeover-hud-card absolute top-[55%] right-[5%] md:top-[55%] md:right-[35%] md:left-[auto] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-3 w-full max-w-[11.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl animate-float-slow"
               style={{ animationDelay: '2.1s' }}
             >
               <Zap className="h-4 w-4 text-accent mb-1.5" />
@@ -482,13 +482,13 @@ const LandingPage = () => {
             <div ref={hiwContainerRef} className="flex gap-6 sm:gap-8 w-[max-content] pb-8 pr-[50vw]">
               <div className="hiw-progress-line absolute top-1/2 left-4 h-1 w-[200vw] -translate-y-1/2 bg-gradient-to-r from-primary/30 to-accent/30 -z-10 rounded-full hidden md:block" />
               {HOW_IT_WORKS.map((step, i) => (
-                <div key={step.title} className="hiw-card card-base relative p-8 sm:p-10 w-[85vw] md:w-[28rem] flex-shrink-0 bg-surface/50 backdrop-blur-xl border-white/5 rounded-3xl">
-                  <div className="mb-6 inline-grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary ring-1 ring-border shadow-lg">
-                    <step.icon className="h-7 w-7" />
+                <div key={step.title} className="hiw-card card-base relative p-6 sm:p-8 w-[85vw] md:w-[22rem] flex-shrink-0 bg-surface/50 backdrop-blur-xl border-white/5 rounded-3xl">
+                  <div className="mb-5 inline-grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary ring-1 ring-border shadow-lg">
+                    <step.icon className="h-6 w-6" />
                   </div>
-                  <div className="mb-2 font-display text-[11px] font-bold text-accent tracking-widest uppercase">Step {i + 1}</div>
-                  <h3 className="font-display text-2xl font-semibold text-text">{step.title}</h3>
-                  <p className="mt-3 text-base leading-relaxed text-text-muted">{step.desc}</p>
+                  <div className="mb-1.5 font-display text-[10px] font-bold text-accent tracking-widest uppercase">Step {i + 1}</div>
+                  <h3 className="font-display text-xl font-semibold text-text">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">{step.desc}</p>
                 </div>
               ))}
             </div>
