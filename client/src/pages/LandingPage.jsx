@@ -283,8 +283,6 @@ const LandingPage = () => {
       </Helmet>
 
       <div ref={mainRef} className="relative">
-        {/* Global grid background spanning the entire landing page */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center bg-repeat opacity-20 pointer-events-none" />
         
         {/* HERO */}
         <section className="relative overflow-visible pt-24 pb-32 lg:pt-32 lg:pb-40 min-h-[85vh] flex flex-col justify-start z-20">
@@ -449,7 +447,7 @@ const LandingPage = () => {
 
         {/* CTA BANNER (Immersive Wrap) */}
         <section ref={ctaRef} className="relative overflow-hidden z-20 min-h-[90vh] flex items-center justify-center pb-16">
-          <div className="cta-spotlight-box absolute inset-x-4 inset-y-8 sm:inset-x-8 sm:inset-y-16 rounded-[2.5rem] border border-border bg-gradient-to-b from-surface/50 to-bg pointer-events-none">
+          <div className="cta-spotlight-box absolute inset-0 pointer-events-none">
             {/* Ambient glows bleeding to edges */}
             <div className="absolute -left-1/4 -top-1/4 h-[70vw] w-[70vw] rounded-full bg-primary/10 blur-[120px]" />
             <div className="absolute -bottom-1/4 -right-1/4 h-[70vw] w-[70vw] rounded-full bg-accent/10 blur-[120px]" />

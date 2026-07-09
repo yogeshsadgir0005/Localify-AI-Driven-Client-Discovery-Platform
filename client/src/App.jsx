@@ -121,7 +121,7 @@ const SCENES = {
   // Landing — everything after the hero: one consistent, calm background
   'landing-rest': (
     <>
-      {pattern('fx-dots', 'opacity-60')}
+      {pattern('fx-grid', 'opacity-60')}
       {glow('-left-40 top-1/4 h-[34rem] w-[34rem] bg-glow-primary animate-aurora-1')}
       {glow('-right-40 bottom-0 h-[32rem] w-[32rem] bg-glow-accent animate-aurora-2')}
     </>
