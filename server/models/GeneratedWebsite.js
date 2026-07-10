@@ -17,9 +17,15 @@ const generatedWebsiteSchema = new mongoose.Schema(
       landing: { type: String, default: '' },
       contact: { type: String, default: '' },
       feature: { type: String, default: '' },
-      html: { type: String, default: '' },  // NEW: self-contained HTML from premium template
+      html: { type: String, default: '' },  // self-contained HTML
     },
     surveyContext: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // Multi-Agent Pipeline Data
+    intermediateSpecs: { type: mongoose.Schema.Types.Mixed, default: {} },
+    qualityScores: { type: mongoose.Schema.Types.Mixed, default: {} },
+    qaReports: { type: Array, default: [] },
+    pipelineMetrics: { type: mongoose.Schema.Types.Mixed, default: {} },
+    promptVersion: { type: String, default: '1.0' },
   },
   { timestamps: true }
 );

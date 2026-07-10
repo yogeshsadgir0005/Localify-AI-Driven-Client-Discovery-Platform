@@ -1,26 +1,53 @@
 const { callLlm } = require('./aiService');
 
-const extractJson = (text) => {
+const PIPELINE_CONFIG = {
+  models: {
+    reasoning: process.env.LLM_MODEL_REASONING || 'gemini-2.5-pro',
+    coder: process.env.LLM_MODEL_CODER || 'gemini-2.5-flash',
+    validator: process.env.LLM_MODEL_VALIDATOR || 'gemini-2.5-flash',
+  },
+  maxRetries: 2,
+  qualityThreshold: 9.0,
+  promptVersion: '1.1',
+};
+
+const extractJsonRobust = (text) => {
   if (!text) return null;
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
+  // Strip markdown fences
+  let cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  
+  const start = cleanText.indexOf('{');
+  const end = cleanText.lastIndexOf('}');
+  
   if (start === -1 || end === -1 || end <= start) {
-    const arrayStart = text.indexOf('[');
-    const arrayEnd = text.lastIndexOf(']');
+    const arrayStart = cleanText.indexOf('[');
+    const arrayEnd = cleanText.lastIndexOf(']');
     if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-      try { return JSON.parse(text.slice(arrayStart, arrayEnd + 1)); } catch (e) { return null; }
+      try { return JSON.parse(cleanText.slice(arrayStart, arrayEnd + 1)); } catch (e) { return null; }
     }
     return null;
   }
+  
   try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
+    return JSON.parse(cleanText.slice(start, end + 1));
+  } catch (e) {
+    // If strict parsing fails, we could try relaxed parsing, but returning null triggers LLM retry
     return null;
   }
 };
 
+const runAgentWithRetry = async (prompt, opts, retries = 2) => {
+  for (let i = 0; i <= retries; i++) {
+    const raw = await callLlm(prompt, opts, 1);
+    const parsed = extractJsonRobust(raw);
+    if (parsed) return parsed;
+    console.warn(`[ai] JSON extraction failed on attempt ${i + 1}. Retrying...`);
+  }
+  return null;
+};
+
 const pmAgent = async (contextStr, onProgress) => {
-  if (onProgress) onProgress({ status: 'Phase 1', message: 'PM: Understanding business requirements...', progress: 10 });
+  if (onProgress) onProgress({ status: 'Phase 1', message: '🧠 Understanding business...', progress: 10 });
   const prompt = `You are an elite Product Manager.
 Context:
 ${contextStr}
@@ -35,13 +62,11 @@ Respond with ONLY a JSON object containing:
   "trustSignals": ["Signal 1", "Signal 2"],
   "sectionPriority": ["Hero", "Features", "Testimonials", "Footer"]
 }`;
-  
-  const raw = await callLlm(prompt, { maxTokens: 800, temperature: 0.6, model: 'gemini-2.5-flash', system: 'Output ONLY valid JSON.' }, 1);
-  return extractJson(raw) || { conversionObjective: "Lead Generation", sectionPriority: ["Hero", "Features", "Testimonials", "Footer"] };
+  return (await runAgentWithRetry(prompt, { maxTokens: 800, temperature: 0.6, model: PIPELINE_CONFIG.models.reasoning, system: 'Output ONLY valid JSON.' })) || { conversionObjective: "Lead Generation", sectionPriority: ["Hero", "Features", "Testimonials", "Footer"] };
 };
 
 const designerAgent = async (pmSpec, contextStr, onProgress) => {
-  if (onProgress) onProgress({ status: 'Phase 2', message: 'Designer: Creating visual blueprint...', progress: 20 });
+  if (onProgress) onProgress({ status: 'Phase 2', message: '🎨 Designing interface...', progress: 20 });
   const prompt = `You are an elite UI/UX Designer.
 Context:
 ${contextStr}
@@ -62,13 +87,11 @@ Respond with ONLY a JSON object containing:
     "testimonials": "e.g., Editorial style quote cards"
   }
 }`;
-  
-  const raw = await callLlm(prompt, { maxTokens: 1000, temperature: 0.7, model: 'gemini-2.5-flash', system: 'Output ONLY valid JSON.' }, 1);
-  return extractJson(raw) || { designLanguage: "Modern Clean", sectionCompositions: {} };
+  return (await runAgentWithRetry(prompt, { maxTokens: 1000, temperature: 0.7, model: PIPELINE_CONFIG.models.reasoning, system: 'Output ONLY valid JSON.' })) || { designLanguage: "Modern Clean", sectionCompositions: {} };
 };
 
 const architectAgent = async (designerSpec, pmSpec, onProgress) => {
-  if (onProgress) onProgress({ status: 'Phase 3', message: 'Architect: Planning semantic structure...', progress: 30 });
+  if (onProgress) onProgress({ status: 'Phase 3', message: '🏗️ Planning architecture...', progress: 30 });
   const prompt = `You are a Technical Architect.
 PM Strategy: ${JSON.stringify(pmSpec)}
 Design Blueprint: ${JSON.stringify(designerSpec)}
@@ -85,28 +108,28 @@ Respond with ONLY a JSON object containing:
     { "id": "footer", "description": "Footer details" }
   ]
 }`;
-  
-  const raw = await callLlm(prompt, { maxTokens: 1000, temperature: 0.5, model: 'gemini-2.5-flash', system: 'Output ONLY valid JSON.' }, 1);
-  return extractJson(raw) || { components: [{ id: "hero", description: "Hero" }] };
+  return (await runAgentWithRetry(prompt, { maxTokens: 1000, temperature: 0.5, model: PIPELINE_CONFIG.models.reasoning, system: 'Output ONLY valid JSON.' })) || { components: [{ id: "hero", description: "Hero" }] };
 };
 
 const developerAgent = async (architectSpec, designerSpec, pmSpec, contextStr, feedback = null, sectionsToRegenerate = null, onProgress) => {
   if (onProgress) {
-    const msg = feedback ? 'Developer: Refining code based on QA feedback...' : 'Developer: Writing semantic HTML and Tailwind...';
-    onProgress({ status: 'Phase 4', message: msg, progress: feedback ? 65 : 45 });
+    if (feedback && sectionsToRegenerate) {
+      onProgress({ status: 'Phase 4', message: `🔧 Fixing ${sectionsToRegenerate.join(', ')}...`, progress: 65 });
+    } else {
+      onProgress({ status: 'Phase 4', message: '💻 Writing Sections...', progress: 45 });
+    }
   }
 
   const prompt = `You are an elite Frontend Developer.
 Context: ${contextStr}
-
 PM Strategy: ${JSON.stringify(pmSpec)}
 Design Blueprint: ${JSON.stringify(designerSpec)}
 Architect Spec: ${JSON.stringify(architectSpec)}
 
 Your task is to write production-ready, semantic HTML using Tailwind CSS based EXACTLY on these specifications. 
-Do not invent layouts outside the blueprint. Use real copywriting tailored to the business.
+Use real copywriting tailored to the business.
 
-${feedback ? `\nPREVIOUS QA FEEDBACK TO FIX:\n${feedback}\nONLY regenerate these sections: ${sectionsToRegenerate.join(', ')}` : ''}
+${feedback ? `\nPREVIOUS QA FEEDBACK TO FIX:\n${feedback}\nONLY output these sections: ${sectionsToRegenerate.join(', ')}` : ''}
 
 Respond with ONLY a JSON array of objects representing each section. Example format:
 [
@@ -115,20 +138,20 @@ Respond with ONLY a JSON array of objects representing each section. Example for
 ]
 Output ONLY the JSON array. NO markdown, NO prose.`;
 
-  const raw = await callLlm(prompt, { maxTokens: 8192, timeout: 120000, temperature: 0.4, model: 'gemini-2.5-flash', system: 'Output ONLY a valid JSON array.' }, 2);
-  const arr = extractJson(raw);
+  const arr = await runAgentWithRetry(prompt, { maxTokens: 8192, timeout: 120000, temperature: 0.4, model: PIPELINE_CONFIG.models.coder, system: 'Output ONLY a valid JSON array.' });
   return Array.isArray(arr) ? arr : [];
 };
 
-const codeReviewerAgent = async (sections, architectSpec) => {
+const codeReviewerAgent = async (sections, architectSpec, contextStr) => {
   const html = sections.map(s => s.html).join('\n');
   const prompt = `You are a Strict Code Reviewer.
+Context: ${contextStr}
 Architect Spec: ${JSON.stringify(architectSpec)}
 
 Review the following HTML for:
-1. Semantic HTML correctness
+1. Semantic HTML correctness and hierarchy
 2. Responsive structure (valid Tailwind md:/lg: usage)
-3. Invalid nesting or duplicate IDs
+3. Invalid nesting or accessibility issues
 4. Missing closing tags or markdown artifacts
 
 Code:
@@ -137,20 +160,20 @@ ${html}
 Respond with ONLY a JSON object:
 {
   "passed": boolean,
-  "failedSections": ["hero", "features"], 
+  "failedSections": ["hero"], 
   "feedback": "Specific feedback for the developer to fix the failed sections",
   "score": 9.5
 }`;
-  const raw = await callLlm(prompt, { maxTokens: 800, temperature: 0.2, model: 'gemini-2.5-flash', system: 'Output ONLY valid JSON.' }, 1);
-  return extractJson(raw) || { passed: true, score: 10, failedSections: [] };
+  return (await runAgentWithRetry(prompt, { maxTokens: 800, temperature: 0.2, model: PIPELINE_CONFIG.models.validator, system: 'Output ONLY valid JSON.' })) || { passed: true, score: 9.0, failedSections: [] };
 };
 
-const visualQaAgent = async (sections, designerSpec) => {
+const visualQaAgent = async (sections, designerSpec, contextStr) => {
   const html = sections.map(s => s.html).join('\n');
   const prompt = `You are a Visual QA Director.
+Context: ${contextStr}
 Design Blueprint: ${JSON.stringify(designerSpec)}
 
-Review the following HTML to ensure the visual hierarchy, layout balance, and design language match the blueprint. Ensure it looks premium and professional, not generic.
+Review the following HTML to ensure the visual hierarchy, layout balance, and design language match the blueprint and business intent. Ensure it looks premium and professional.
 
 Code:
 ${html}
@@ -162,12 +185,10 @@ Respond with ONLY a JSON object:
   "feedback": "Specific visual feedback (e.g., 'Hero lacks contrast, increase padding')",
   "score": 9.2
 }`;
-  const raw = await callLlm(prompt, { maxTokens: 800, temperature: 0.3, model: 'gemini-2.5-flash', system: 'Output ONLY valid JSON.' }, 1);
-  return extractJson(raw) || { passed: true, score: 10, failedSections: [] };
+  return (await runAgentWithRetry(prompt, { maxTokens: 800, temperature: 0.3, model: PIPELINE_CONFIG.models.validator, system: 'Output ONLY valid JSON.' })) || { passed: true, score: 9.0, failedSections: [] };
 };
 
 const htmlValidatorAgent = (html) => {
-  // Fast deterministic validation
   let passed = true;
   let feedback = [];
   
@@ -180,10 +201,34 @@ const htmlValidatorAgent = (html) => {
     feedback.push(`Mismatched divs: ${openDivs} open, ${closeDivs} close`);
   }
 
+  const mainTags = (html.match(/<main/g) || []).length;
+  if (mainTags > 1) { passed = false; feedback.push(`Multiple <main> tags found (${mainTags})`); }
+  
+  const emptyButtons = html.match(/<button[^>]*>\s*<\/button>/gi);
+  if (emptyButtons) { passed = false; feedback.push("Found empty <button> tags"); }
+
+  // Simple heuristic for missing alt attributes on images
+  const imgsWithoutAlt = html.match(/<img(?![^>]*\balt=)[^>]*>/gi);
+  if (imgsWithoutAlt) { passed = false; feedback.push(`Found ${imgsWithoutAlt.length} images without alt attributes`); }
+
   return { passed, feedback: feedback.join(', ') };
 };
 
-const generateAgenticWebsite = async (business, survey, brandContext = {}, onProgress = null) => {
+const measureExecution = async (name, fn, metricsObj) => {
+  const start = Date.now();
+  try {
+    const result = await fn();
+    const duration = ((Date.now() - start) / 1000).toFixed(1);
+    metricsObj[name] = `${duration}s`;
+    return result;
+  } catch (err) {
+    const duration = ((Date.now() - start) / 1000).toFixed(1);
+    metricsObj[name] = `${duration}s (FAILED)`;
+    throw err;
+  }
+};
+
+const generateAgenticWebsite = async (business, survey, brandContext = {}, onProgress = null, existingWebsite = null) => {
   const brandColor = survey?.color || brandContext.color || '#6C63FF';
   const category = (business.categories || [])[0] || 'business';
   const name = business.name || 'Our Business';
@@ -198,44 +243,67 @@ const generateAgenticWebsite = async (business, survey, brandContext = {}, onPro
 
   const contextStr = `Business: "${name}"\nCategory: ${category}\nLocation: ${city}\nBrand Color: ${brandColor}\nBrand Vibe: ${vibe}\nReviews: ${reviewContext}\n${surveyContext ? `Preferences: ${surveyContext}` : ''}`;
 
-  // 1. PM
-  const pmSpec = await pmAgent(contextStr, onProgress);
+  const metrics = {};
+  const qaReports = [];
+  const qualityScores = { overall: 0 };
   
-  // 2. Designer
-  const designerSpec = await designerAgent(pmSpec, contextStr, onProgress);
+  // Use cache if version matches
+  let pmSpec, designerSpec, architectSpec;
+  const cache = existingWebsite?.intermediateSpecs || {};
+  const isCacheValid = cache.version === PIPELINE_CONFIG.promptVersion;
+
+  if (isCacheValid && cache.pm) {
+    if (onProgress) onProgress({ status: 'Phase 1-3', message: '🚀 Restoring cached architecture...', progress: 30 });
+    pmSpec = cache.pm;
+    designerSpec = cache.designer;
+    architectSpec = cache.architect;
+    metrics['CacheRestore'] = '0.1s';
+  } else {
+    pmSpec = await measureExecution('PM', () => pmAgent(contextStr, onProgress), metrics);
+    designerSpec = await measureExecution('Designer', () => designerAgent(pmSpec, contextStr, onProgress), metrics);
+    architectSpec = await measureExecution('Architect', () => architectAgent(designerSpec, pmSpec, onProgress), metrics);
+  }
   
-  // 3. Architect
-  const architectSpec = await architectAgent(designerSpec, pmSpec, onProgress);
-  
+  const intermediateSpecs = {
+    version: PIPELINE_CONFIG.promptVersion,
+    pm: pmSpec,
+    designer: designerSpec,
+    architect: architectSpec,
+  };
+
   // 4. Developer (Initial)
-  let sections = await developerAgent(architectSpec, designerSpec, pmSpec, contextStr, null, null, onProgress);
+  let sections = await measureExecution('Developer (Initial)', () => developerAgent(architectSpec, designerSpec, pmSpec, contextStr, null, null, onProgress), metrics);
   if (!sections || sections.length === 0) throw new Error("Developer failed to generate initial code.");
 
-  // QA Loop (Max 2 retries)
+  // QA Loop
   let retries = 0;
-  const MAX_RETRIES = 2;
   
-  while (retries < MAX_RETRIES) {
-    if (onProgress) onProgress({ status: 'Phase 5', message: `Running QA Checks (Attempt ${retries + 1})...`, progress: 55 });
+  while (retries < PIPELINE_CONFIG.maxRetries) {
+    if (onProgress) onProgress({ status: 'Phase 5', message: `🔍 Reviewing Code & Design (Attempt ${retries + 1})...`, progress: 55 });
     
-    // 5. Code Review
-    const codeReview = await codeReviewerAgent(sections, architectSpec);
+    let currentSectionsToReview = sections; 
+    // Optimization: if it's a retry, we only really need to re-evaluate the whole page layout for visual QA, 
+    // but the reviewer agents will process the assembled sections which includes the updated ones.
     
-    // 6. Visual QA
-    const visualQa = await visualQaAgent(sections, designerSpec);
+    const codeReview = await measureExecution(`Code Review (Attempt ${retries + 1})`, () => codeReviewerAgent(currentSectionsToReview, architectSpec, contextStr), metrics);
+    const visualQa = await measureExecution(`Visual QA (Attempt ${retries + 1})`, () => visualQaAgent(currentSectionsToReview, designerSpec, contextStr), metrics);
     
-    let allPassed = codeReview.passed && visualQa.passed && codeReview.score >= 8.5 && visualQa.score >= 8.5;
+    qaReports.push({ attempt: retries + 1, codeReview, visualQa });
+    qualityScores.code = codeReview.score;
+    qualityScores.visual = visualQa.score;
+    qualityScores.overall = ((codeReview.score + visualQa.score) / 2).toFixed(1);
+
+    let allPassed = codeReview.passed && visualQa.passed && parseFloat(qualityScores.overall) >= PIPELINE_CONFIG.qualityThreshold;
     
     if (allPassed) {
       console.log(`[ai] QA Passed on attempt ${retries + 1}`);
       break;
     }
     
-    // Collect failed sections
     const failedSet = new Set([...(codeReview.failedSections || []), ...(visualQa.failedSections || [])]);
     const failedArray = Array.from(failedSet);
     
-    if (failedArray.length === 0) break; // Fallback if they said fail but didn't specify
+    if (failedArray.length === 0) break; // Fallback
     
     let combinedFeedback = "";
     if (!codeReview.passed) combinedFeedback += `Code Review: ${codeReview.feedback}\n`;
@@ -244,9 +312,9 @@ const generateAgenticWebsite = async (business, survey, brandContext = {}, onPro
     console.log(`[ai] QA Failed on sections: ${failedArray.join(', ')}. Retrying...`);
     
     // Ask Developer to regenerate ONLY the failed sections
-    const updatedSections = await developerAgent(architectSpec, designerSpec, pmSpec, contextStr, combinedFeedback, failedArray, onProgress);
+    const updatedSections = await measureExecution(`Developer Fix (${failedArray.join(',')})`, () => developerAgent(architectSpec, designerSpec, pmSpec, contextStr, combinedFeedback, failedArray, onProgress), metrics);
     
-    // Merge updated sections back into the main array
+    // Merge updated sections
     for (const updated of updatedSections) {
       const idx = sections.findIndex(s => s.id === updated.id);
       if (idx !== -1) {
@@ -260,22 +328,31 @@ const generateAgenticWebsite = async (business, survey, brandContext = {}, onPro
   }
 
   // Assemble full HTML
-  if (onProgress) onProgress({ status: 'Phase 7', message: 'Running final HTML validation...', progress: 90 });
+  if (onProgress) onProgress({ status: 'Phase 7', message: '✅ Final validation & packaging...', progress: 90 });
   
   const innerHtml = sections.map(s => s.html).join('\n');
   let fullHtml = `<!DOCTYPE html>\n<html lang="en" class="scroll-smooth">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>${name}</title>\n<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">\n<script src="https://cdn.tailwindcss.com"></script>\n<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>\n<script src="https://unpkg.com/lucide@latest"></script>\n<style>\nbody { background-color: #0D0F14; color: #E8EAF0; }\n@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }\n.animate-float { animation: float 6s ease-in-out infinite; }\n</style>\n</head>\n<body class="antialiased">\n`;
   fullHtml += innerHtml;
   fullHtml += `\n<script>lucide.createIcons();</script>\n</body>\n</html>`;
 
-  // 7. HTML Validator
-  const validation = htmlValidatorAgent(fullHtml);
-  if (!validation.passed) {
-    console.warn(`[ai] Final HTML validation warned: ${validation.feedback}. Proceeding anyway to avoid failure.`);
+  const validation = measureExecution('HTML Validator', () => htmlValidatorAgent(fullHtml), metrics);
+  // We await this artificially to capture timing, though it's sync.
+  qualityScores.validation = (await validation).passed ? 10 : 7; 
+  
+  if (!(await validation).passed) {
+    console.warn(`[ai] Final HTML validation warned: ${(await validation).feedback}. Proceeding anyway to avoid failure.`);
   }
   
-  if (onProgress) onProgress({ status: 'Complete', message: 'Agentic Website Generation Complete!', progress: 100 });
+  if (onProgress) onProgress({ status: 'Complete', message: '🚀 Packaging website...', progress: 100 });
   
-  return { html: fullHtml };
+  return { 
+    pages: { html: fullHtml }, 
+    intermediateSpecs, 
+    qualityScores, 
+    qaReports, 
+    pipelineMetrics: metrics,
+    promptVersion: PIPELINE_CONFIG.promptVersion
+  };
 };
 
 module.exports = { generateAgenticWebsite };

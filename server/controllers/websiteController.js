@@ -98,8 +98,10 @@ const generateWebsite = async (req, res, next) => {
     const brandContext = await analyzeBusinessImages(photoUrls);
 
     // Generate with AI
-    const pages = await generateAgenticWebsite(business, survey, brandContext, onProgress);
-    if (!pages || !pages.html) {
+    const existingWebsite = website; // The one we found at the top, or null
+    const result = await generateAgenticWebsite(business, survey, brandContext, onProgress, existingWebsite);
+    
+    if (!result || !result.pages || !result.pages.html) {
       if (isStream) {
         res.write(`data: ${JSON.stringify({ error: 'AI failed to generate a complete website. Please try again.' })}\n\n`);
         return res.end();
@@ -118,13 +120,18 @@ const generateWebsite = async (req, res, next) => {
     }
 
     // Save to DB
-    const website = await GeneratedWebsite.findOneAndUpdate(
+    const updatedWebsite = await GeneratedWebsite.findOneAndUpdate(
       { placeId },
       {
         placeId,
         ownerId: user._id,
-        pages,
+        pages: result.pages,
         surveyContext: survey,
+        intermediateSpecs: result.intermediateSpecs,
+        qualityScores: result.qualityScores,
+        qaReports: result.qaReports,
+        pipelineMetrics: result.pipelineMetrics,
+        promptVersion: result.promptVersion,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -132,10 +139,10 @@ const generateWebsite = async (req, res, next) => {
     logEvent(req, 'generate_website', { target: placeId, meta: { plan } });
 
     if (isStream) {
-      res.write(`data: ${JSON.stringify({ status: 'Done', website })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: 'Done', website: updatedWebsite })}\n\n`);
       return res.end();
     }
-    return res.json({ success: true, message: 'Website generated successfully!', website });
+    return res.json({ success: true, message: 'Website generated successfully!', website: updatedWebsite });
   } catch (err) {
     console.error('[websiteController] Generation Error:', err);
     const isStream = req.query.stream === 'true';
@@ -177,9 +184,9 @@ const changeTheme = async (req, res, next) => {
     
     // Regenerate with new color
     const newSurvey = { ...website.surveyContext, color };
-    const pages = await generateAgenticWebsite(business, newSurvey, { color });
+    const result = await generateAgenticWebsite(business, newSurvey, { color }, null, website);
     
-    if (!pages || !pages.html) {
+    if (!result || !result.pages || !result.pages.html) {
       return res.status(500).json({ success: false, message: 'Failed to regenerate theme.' });
     }
 
@@ -193,8 +200,13 @@ const changeTheme = async (req, res, next) => {
       await user.save();
     }
 
-    website.pages = pages;
+    website.pages = result.pages;
     website.surveyContext = newSurvey;
+    website.intermediateSpecs = result.intermediateSpecs;
+    website.qualityScores = result.qualityScores;
+    website.qaReports = result.qaReports;
+    website.pipelineMetrics = result.pipelineMetrics;
+    website.promptVersion = result.promptVersion;
     await website.save();
 
     return res.json({ success: true, message: 'Theme updated successfully!', website });
