@@ -98,7 +98,7 @@ const generateWebsite = async (req, res, next) => {
     const brandContext = await analyzeBusinessImages(photoUrls);
 
     // Generate with AI
-    const existingWebsite = website; // The one we found at the top, or null
+    const existingWebsite = await GeneratedWebsite.findOne({ placeId });
     const result = await generateAgenticWebsite(business, survey, brandContext, onProgress, existingWebsite);
     
     if (!result || !result.pages || !result.pages.html) {
