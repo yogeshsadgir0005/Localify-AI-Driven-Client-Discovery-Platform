@@ -1,6 +1,7 @@
 const GeneratedWebsite = require('../models/GeneratedWebsite');
 const User = require('../models/User');
-const { generateReactWebsite, analyzeBusinessImages } = require('../services/aiService');
+const { analyzeBusinessImages } = require('../services/aiService');
+const { generateAgenticWebsite } = require('../services/websiteGenerator');
 const { getDetailCached } = require('./businessController');
 const { placePhoto } = require('../utils/googleMaps');
 const { logEvent } = require('../utils/telemetry');
@@ -97,7 +98,7 @@ const generateWebsite = async (req, res, next) => {
     const brandContext = await analyzeBusinessImages(photoUrls);
 
     // Generate with AI
-    const pages = await generateReactWebsite(business, survey, brandContext, onProgress);
+    const pages = await generateAgenticWebsite(business, survey, brandContext, onProgress);
     if (!pages || !pages.html) {
       if (isStream) {
         res.write(`data: ${JSON.stringify({ error: 'AI failed to generate a complete website. Please try again.' })}\n\n`);
@@ -176,7 +177,7 @@ const changeTheme = async (req, res, next) => {
     
     // Regenerate with new color
     const newSurvey = { ...website.surveyContext, color };
-    const pages = await generateReactWebsite(business, newSurvey, { color });
+    const pages = await generateAgenticWebsite(business, newSurvey, { color });
     
     if (!pages || !pages.html) {
       return res.status(500).json({ success: false, message: 'Failed to regenerate theme.' });
