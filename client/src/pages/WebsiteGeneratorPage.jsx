@@ -31,21 +31,34 @@ const WebsiteGeneratorPage = () => {
     return () => clearInterval(timer);
   }, [startTime]);
 
+  // Run-once guard: React StrictMode (dev) mounts effects twice, and a stray
+  // re-render could re-fire generation. startedRef ensures we kick off exactly
+  // ONE generation request; activeRef gates state updates so a real unmount
+  // doesn't setState on an unmounted component. This is what stops the
+  // "two racing pipelines / two different section sets" bug at the source.
+  const startedRef = useRef(false);
+  const activeRef = useRef(true);
+
   useEffect(() => {
+    activeRef.current = true;
+
     if (!location.state?.survey) {
       toast.error("Missing survey data. Please start generation from the business profile.");
       navigate(`/business/${placeId}`);
-      return;
+      return () => { activeRef.current = false; };
     }
 
-    const abortController = new AbortController();
+    if (startedRef.current) {
+      // Generation already kicked off for this mount — do not fire a second one.
+      return () => { activeRef.current = false; };
+    }
+    startedRef.current = true;
 
     const startGeneration = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
         const response = await fetch(`${API_BASE}/website/${placeId}/generate?stream=true`, {
           method: 'POST',
-          signal: abortController.signal,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -54,9 +67,8 @@ const WebsiteGeneratorPage = () => {
         });
 
         if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error('QUOTA_EXCEEDED');
-          }
+          if (response.status === 403) throw new Error('QUOTA_EXCEEDED');
+          if (response.status === 409) throw new Error('ALREADY_GENERATING');
           throw new Error('Failed to connect to AI generation server.');
         }
 
@@ -66,29 +78,25 @@ const WebsiteGeneratorPage = () => {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
+          if (!activeRef.current) return; // component unmounted — stop updating
+
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n\n');
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.replace('data: ', ''));
-                
-                if (data.error) {
-                  setError(data.error);
-                  return;
-                }
-                
-                if (data.progress !== undefined) setProgress(data.progress);
+                if (!activeRef.current) return;
+
+                if (data.error) { setError(data.error); return; }
+                if (data.progress !== undefined) setProgress(prev => Math.max(prev, data.progress));
                 if (data.message) setStatus(data.message);
-                
-                if (data.status === 'Done' && data.website) {
+
+                if (data.status === 'Done') {
                   setProgress(100);
                   setStatus('Website Generation Complete!');
-                  setTimeout(() => {
-                    navigate(`/business/website/${placeId}`);
-                  }, 1000);
+                  setTimeout(() => { if (activeRef.current) navigate(`/business/website/${placeId}`); }, 1000);
                   return;
                 }
               } catch (e) {
@@ -98,16 +106,16 @@ const WebsiteGeneratorPage = () => {
           }
         }
       } catch (err) {
-        if (err.name === 'AbortError') return;
-        setError(err.message === 'QUOTA_EXCEEDED' ? 'AI Quota Exceeded. Please upgrade your plan.' : err.message);
+        if (!activeRef.current || err.name === 'AbortError') return;
+        if (err.message === 'QUOTA_EXCEEDED') setError('AI Quota Exceeded. Please upgrade your plan.');
+        else if (err.message === 'ALREADY_GENERATING') setError('A website is already being generated for this business. Please wait for it to finish, then refresh.');
+        else setError(err.message);
       }
     };
 
     startGeneration();
 
-    return () => {
-      abortController.abort();
-    };
+    return () => { activeRef.current = false; };
   }, [placeId, navigate, token, location.state]);
 
   const getIcon = () => {

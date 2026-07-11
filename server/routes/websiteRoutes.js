@@ -12,4 +12,10 @@ router.post('/:placeId/generate', authMiddleware, websiteController.generateWebs
 // POST /api/website/:placeId/change-theme (Protected)
 router.post('/:placeId/change-theme', authMiddleware, websiteController.changeTheme);
 
+// PUT /api/website/:placeId/code — save manual code edits (Protected, free)
+router.put('/:placeId/code', authMiddleware, websiteController.saveCode);
+
+// POST /api/website/:placeId/fix — AI targeted bug fix (Protected, costs 1 credit)
+router.post('/:placeId/fix', authMiddleware, websiteController.fixBugs);
+
 module.exports = router;

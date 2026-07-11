@@ -1,126 +1,144 @@
-import { categoryOf } from '../hooks/useBusinessSearch';
-
-const genericQuestions = [
-  {
-    id: 'Brand Persona',
-    title: 'How would you describe your brand\'s personality?',
-    options: ['Innovative, Modern & Tech-forward', 'High-end, Premium & Exclusive', 'Friendly, Local & Community-driven', 'Bold, Energetic & Disruptive']
-  },
-  {
-    id: 'Visual Aesthetic',
-    title: 'Which visual style appeals to you the most?',
-    options: ['Rich & Immersive (Glows, blur effects, glassmorphism)', 'Clean, Minimalist & Spacious (Apple-style)', 'Structured & Data-dense (Bento-box grids)', 'Playful, Colorful with Soft rounded edges']
-  },
-  {
-    id: 'Content Layout',
-    title: 'How should your content be presented?',
-    options: ['Dynamic Bento-style grids with floating cards', 'Immersive full-screen sections with smooth scrolling', 'Clean, classic alternating left/right blocks', 'Highly visual with large image carousels']
-  },
-  {
-    id: 'Animations',
-    title: 'How much movement do you want on the site?',
-    options: ['Subtle glow effects and smooth hover states', 'Elements fading and sliding in as you scroll', 'Playful floating elements and spring animations', 'Static and blazing fast (no animations)']
-  },
-  {
-    id: 'Main Action',
-    title: 'What is the #1 goal of the website?',
-    options: ['Generate Leads (Prominent Contact Forms)', 'Drive Foot Traffic (Maps & Directions)', 'Direct Sales / Bookings (Clear Action Buttons)', 'Brand Awareness (Focus on Story & Visuals)']
-  }
-];
-
-const restaurantQuestions = [
-  {
-    id: 'Brand Persona',
-    title: 'How do you want your restaurant to feel?',
-    options: ['Upscale, Fine Dining & Exclusive', 'Modern, Trendy & Instagram-worthy', 'Casual, Warm & Family Friendly', 'Rustic, Cozy & Traditional']
-  },
-  {
-    id: 'Visual Aesthetic',
-    title: 'What design style fits your food best?',
-    options: ['Dark & Moody with glowing neon accents', 'Clean, Minimalist & Bright', 'Rich & Immersive (Glassmorphism & deep shadows)', 'Vibrant, Colorful & Playful']
-  },
-  {
-    id: 'Menu Display',
-    title: 'How should we showcase your menu?',
-    options: ['A dynamic, asymmetrical Bento grid of dishes', 'Massive mouth-watering full-width images', 'A sleek, classic text list with elegant typography', 'A sliding gallery of your best plates']
-  },
-  {
-    id: 'Animations',
-    title: 'How should the page feel when scrolling?',
-    options: ['Silky smooth with subtle hover lifts', 'Images sliding in from the sides', 'Playful floating elements (like ingredients)', 'Static and direct (Focus on speed)']
-  },
-  {
-    id: 'Main Action',
-    title: 'What should hungry customers do first?',
-    options: ['Book a Table (Prominent Reservations)', 'Order Online / View Menu', 'Find our Location (Maps & Hours)', 'Call Us Now']
-  }
-];
-
-const retailQuestions = [
-  {
-    id: 'Brand Persona',
-    title: 'How would you describe your store?',
-    options: ['High-end Luxury Boutique', 'Trendy, Modern & Cult-favorite', 'Friendly Neighborhood Shop', 'Warehouse / Deal focused']
-  },
-  {
-    id: 'Visual Aesthetic',
-    title: 'Which visual style fits your products?',
-    options: ['Sleek & Immersive (Glass cards, glows)', 'Clean & Minimalist (Like an Apple store)', 'Bold & High-Contrast (Brutalist style)', 'Soft, Pastel & Welcoming']
-  },
-  {
-    id: 'Product Display',
-    title: 'How should we display your top items?',
-    options: ['Bento-style grids with different sized cards', 'Big featured products (One by one in full screen)', 'A stylish horizontal sliding carousel', 'A neat, symmetrical grid of items']
-  },
-  {
-    id: 'Animations',
-    title: 'What kind of interactions do you prefer?',
-    options: ['Smooth hover glows and floating cards', 'Products fading in elegantly on scroll', 'Springy, energetic button clicks', 'Keep it simple and static']
-  },
-  {
-    id: 'Main Action',
-    title: 'What is the most important button?',
-    options: ['Shop Now / Browse Catalog', 'Get Directions to Store', 'View Current Offers', 'Contact Us for Details']
-  }
-];
-
-const serviceQuestions = [
-  {
-    id: 'Brand Persona',
-    title: 'How do you want clients to perceive you?',
-    options: ['Premium, Elite & Specialized', 'Highly Professional & Corporate', 'Friendly, Fast & Approachable', 'Innovative & Disruptive']
-  },
-  {
-    id: 'Visual Aesthetic',
-    title: 'What design style builds the most trust?',
-    options: ['Modern & Tech-forward (Glassmorphism, blurs)', 'Clean, Blue/White Corporate style', 'Dark mode with bright, glowing accents', 'Soft, Calming & Trustworthy (Pastels)']
-  },
-  {
-    id: 'Service List',
-    title: 'How should we list your services?',
-    options: ['Dynamic Bento-grid with icons and descriptions', 'Simple, elegant cards with subtle hover lifts', 'Big images for each major service', 'An interactive click-to-read accordion list']
-  },
-  {
-    id: 'Trust Building',
-    title: 'How should we show that you are trustworthy?',
-    options: ['Sleek floating review cards', 'A dedicated award/certification grid', 'Before & After photo sliders', 'A highly professional intro video']
-  },
-  {
-    id: 'Main Action',
-    title: 'What is the main thing you want clients to do?',
-    options: ['Get a Free Quote (Prominent Form)', 'Call Us Immediately', 'Book a Service', 'View our Pricing']
-  }
-];
+// Survey that gives the client COMPLETE control over the generated UI.
+// Every question maps to a concrete design token the AI pipeline honors
+// (see server/services/websiteGenerator.js → strategyDesignAgent + the
+// per-section builder contract). Each `id` is used verbatim as a label in the
+// AI prompt, so keep ids human-readable and descriptive.
+//
+// The modal is single-select and auto-advances, so answering is one click per
+// question. Options are written so a non-technical business owner understands
+// them while still giving the AI a strong, unambiguous signal.
 
 export const getSurveyQuestions = (business) => {
-  if (!business) return genericQuestions;
-
-  const vertical = categoryOf(business.categories);
-  
-  if (vertical === 'restaurant') return restaurantQuestions;
-  if (vertical === 'retail') return retailQuestions;
-  if (vertical === 'service') return serviceQuestions;
-  
-  // Default fallback
-  return genericQuestions;
+  return [
+    {
+      id: 'Color Theme',
+      title: 'What should the main color theme be?',
+      options: [
+        'Dark Mode (deep black / charcoal with bright glowing highlights)',
+        'Light Mode (white / soft gray with clean crisp borders)',
+        'Vibrant & Colorful (bold, saturated, energetic colors everywhere)',
+        'Soft & Calm (gentle pastels and muted, relaxing tones)'
+      ]
+    },
+    {
+      id: 'Visual Aesthetic',
+      title: 'What overall style/personality should it have?',
+      options: [
+        'Minimal & Clean (lots of space, simple, uncluttered)',
+        'Bold & Punchy (big text, strong contrast, high energy)',
+        'Luxury & Elegant (premium, refined, sophisticated)',
+        'Playful & Friendly (fun, approachable, rounded, cheerful)',
+        'Corporate & Professional (trustworthy, structured, business-like)',
+        'Futuristic & Techy (sleek, neon, high-tech, cutting-edge)'
+      ]
+    },
+    {
+      id: 'Card & Surface Style',
+      title: 'How should cards and panels look?',
+      options: [
+        'Glassmorphism (frosted, see-through glass with blur)',
+        'Solid Cards with Shadows (raised, floating, clear depth)',
+        'Flat & Bordered (clean outlines, no shadows, modern-flat)',
+        'Soft & Rounded (gentle pillowy surfaces, subtle depth)'
+      ]
+    },
+    {
+      id: 'Gradients',
+      title: 'How much should color gradients be used?',
+      options: [
+        'Rich Gradients (colorful gradient backgrounds and buttons everywhere)',
+        'Subtle Gradient Accents (a few tasteful gradient touches)',
+        'Solid Colors Only (flat, single colors — no gradients)'
+      ]
+    },
+    {
+      id: 'Special Effects',
+      title: 'What kind of visual effects do you want?',
+      options: [
+        'Glows & Neon (glowing buttons, soft light halos, neon accents)',
+        'Deep Shadows & Depth (strong drop-shadows, layered 3D feel)',
+        'Textured (subtle grain / noise / mesh background texture)',
+        'Clean & Flat (no glows or heavy effects — crisp and simple)'
+      ]
+    },
+    {
+      id: 'Corner Style',
+      title: 'How should the edges and corners look?',
+      options: [
+        'Very Rounded & Soft (big friendly rounded corners)',
+        'Slightly Rounded (modern, gentle corners)',
+        'Sharp & Square (crisp, angular, structured edges)',
+        'Pill-Shaped Buttons (fully rounded capsule buttons)'
+      ]
+    },
+    {
+      id: 'Layout Style',
+      title: 'How should the website be organized?',
+      options: [
+        'Neat Boxes & Cards (everything in its own separate card)',
+        'Full-Screen & Immersive (images and backgrounds stretch edge-to-edge)',
+        'Classic & Simple (straightforward text blocks and standard sections)',
+        'Modern & Floating (elements float freely without strict borders)'
+      ]
+    },
+    {
+      id: 'Spacing & Density',
+      title: 'How much breathing room should there be?',
+      options: [
+        'Airy & Spacious (lots of whitespace, big margins, relaxed)',
+        'Balanced (comfortable, even spacing)',
+        'Compact & Dense (tighter layout, more content per screen)'
+      ]
+    },
+    {
+      id: 'Animations',
+      title: 'How much motion and animation do you want?',
+      options: [
+        'Dramatic (elements slide/zoom in, parallax scrolling, floating items)',
+        'Smooth & Subtle (gentle fades and soft hover effects)',
+        'Playful (bouncy, springy, fun little movements)',
+        'None (completely static and extremely fast)'
+      ]
+    },
+    {
+      id: 'Typography Personality',
+      title: 'What should the text/fonts feel like?',
+      options: [
+        'Modern Sans-Serif (clean, geometric, contemporary)',
+        'Elegant Serif (classy, editorial, sophisticated)',
+        'Bold Display Headlines (big, heavy, attention-grabbing titles)',
+        'Techy / Monospace Accents (sleek, code-like, precise)'
+      ]
+    },
+    {
+      id: 'Hero Section Style',
+      title: 'How should the top banner (first thing visitors see) look?',
+      options: [
+        'Big Background Photo (full-width business photo with text over it)',
+        'Split Layout (headline text on one side, image on the other)',
+        'Centered & Minimal (bold centered headline, clean background)',
+        'Gradient / Color Backdrop (colorful gradient behind the headline)'
+      ]
+    },
+    {
+      id: 'Content Amount',
+      title: 'How much information should each section show?',
+      options: [
+        'Very Detailed (rich text, descriptions, and feature lists)',
+        'Quick & Easy (just the most important bullet points)',
+        'Mainly Visual (big images, very little text)',
+        'Balanced (a good mix of a few paragraphs and images)'
+      ]
+    },
+    {
+      id: 'Main Goal',
+      title: 'What is the main thing you want visitors to do?',
+      options: [
+        'Book an appointment or request a quote',
+        'Call the business immediately',
+        'Find the physical location on a map',
+        'Browse services and learn about the business'
+      ]
+    }
+  ];
 };

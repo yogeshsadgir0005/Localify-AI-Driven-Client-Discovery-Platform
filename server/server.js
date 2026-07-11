@@ -57,8 +57,8 @@ app.use(
   })
 );
 app.use(compression());
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '6mb' })); // allows screenshot data-URLs for AI bug-fix
+app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
 if (!isProd) {
   app.use(morgan('dev'));
@@ -112,8 +112,8 @@ const start = async () => {
     })`);
   });
   
-  // Increase timeout to 5 minutes to prevent connection drops during long AI generations
-  server.setTimeout(300000);
+  // Disable HTTP socket timeout to prevent connection drops during long AI generations
+  server.setTimeout(0);
 };
 
 // --- Graceful shutdown ---
@@ -146,23 +146,3 @@ process.on('uncaughtException', (err) => {
 start();
 
 module.exports = app; 
-
-// Trigger nodemon restart
-
-// Trigger nodemon restart 2
-
-// Trigger nodemon restart for new prompts
-
-// Trigger nodemon restart 3
-
-// Trigger nodemon restart 4
-
-// Trigger nodemon restart 5
-
-// Trigger nodemon restart 6
-
-// Trigger nodemon restart 7
-
-// Trigger nodemon restart 8 
-
-// Trigger nodemon restart 9
