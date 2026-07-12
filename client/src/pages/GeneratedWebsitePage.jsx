@@ -54,9 +54,19 @@ const GeneratedWebsitePage = () => {
     }
   };
 
+  // Rewrite any business-photo proxy URL to THIS frontend's configured backend
+  // origin, so images load even if the stored HTML baked in a stale/localhost
+  // origin (older sites, env mismatch between generation host and viewer).
+  const fixPhotoUrls = (html) => {
+    if (!html) return html;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const origin = apiBase.replace(/\/api\/?$/, '');
+    return html.replace(/https?:\/\/[^/"'\s)]+\/api\/business\/photo/g, `${origin}/api/business/photo`);
+  };
+
   // The compiled HTML string that drives the iframe + copy/edit.
   const buildHtml = () => {
-    if (pages?.html) return pages.html;
+    if (pages?.html) return fixPhotoUrls(pages.html);
     const cleanJSX = (code) => (code || '').replace(/export\s+default\s+/g, '');
     return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Generated Website</title><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/@babel/standalone/babel.min.js"></script></head><body><div id="root"></div><script type="text/babel">const {useState,useEffect}=React;try{${cleanJSX(pages?.landing)}${cleanJSX(pages?.feature)}${cleanJSX(pages?.contact)}const root=ReactDOM.createRoot(document.getElementById('root'));root.render(typeof Landing!=='undefined'?<Landing/>:<div>No content</div>);}catch(e){document.getElementById('root').innerHTML='<pre style="color:red;padding:2rem">'+e.message+'</pre>';}</script></body></html>`;
   };

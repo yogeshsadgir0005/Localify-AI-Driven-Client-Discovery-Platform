@@ -999,12 +999,21 @@ const generateAgenticWebsiteLogic = async (business, survey, brandContext, onPro
   const reviewContext = (business.reviews || []).slice(0, 5).map(r => `"${r.text}" — ${r.authorName || 'Customer'} (${r.rating}★)`).join('\n');
   const hours = Array.isArray(business.openingHours) ? business.openingHours.join(', ') : (typeof business.openingHours === 'string' ? business.openingHours : '');
 
-  // Build real Google Maps photo URLs
-  const apiBase = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(':5173', ':5000') : 'http://localhost:5000';
+  // Build ABSOLUTE, PUBLIC photo-proxy URLs so the generated site's <img> tags
+  // load from ANY viewer (deployed frontend, "Open Full" blob, copied code) —
+  // not just localhost. Resolves the real backend origin from env, preferring an
+  // explicit override, then Render's auto RENDER_EXTERNAL_URL, then dev fallback.
+  const rawBackend = process.env.PUBLIC_BACKEND_URL
+    || process.env.BACKEND_URL
+    || process.env.RENDER_EXTERNAL_URL
+    || (process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(':5173', ':5000') : '')
+    || 'http://localhost:5000';
+  const apiBase = rawBackend.replace(/\/+$/, '').replace(/\/api$/, '');
   const photoUrls = (business.photos || []).slice(0, 8).map((p) => {
     const ref = p.ref || p.photo_reference || p;
     return `${apiBase}/api/business/photo?ref=${encodeURIComponent(typeof ref === 'string' ? ref : '')}&maxwidth=800`;
   }).filter(url => url.includes('ref=') && !url.includes('ref=&'));
+  console.log(`[ai] Photo proxy base: ${apiBase} (${photoUrls.length} photos)`);
 
   const surveyAnswers = Object.entries(survey || {})
     .filter(([k]) => k !== 'color')
