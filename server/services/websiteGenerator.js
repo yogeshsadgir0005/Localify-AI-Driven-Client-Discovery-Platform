@@ -566,6 +566,21 @@ const buildSingleSection = async (component, strategyDesign, contextStr, complet
 • Animation: ${animRule}
 • Hero style preference: ${t.heroStyle || 'split'} (applies to the hero section).`;
 
+  // Category-appropriate primary action (shop cart vs booking) — drives the
+  // hero CTA and product-card buttons. Declared here (before typeHints) so the
+  // type hints can reference it.
+  const primaryAction = strategyDesign.primaryAction || 'booking';
+  const commerceId = strategyDesign.__commerceId || 'products';
+  const primaryActionBlock = primaryAction === 'cart'
+    ? `=== PRIMARY ACTION FOR THIS BUSINESS = SHOP / CART (make buying fully work) ===
+- Product / item cards MUST include a working Add-to-Cart button:
+  <button data-cart-add data-name="EXACT PRODUCT NAME" data-price="₹PRICE" data-image="REAL_PHOTO_URL_OR_OMIT" class="...">Add to Cart</button>
+  The page's global runtime stores the cart in localStorage, shows a floating cart with a live count, and a checkout that saves the order — you do NOT build any of that, just add the buttons.
+- The HERO primary button must be <a href="#${commerceId}" ...>Shop Now</a> (scrolls to the products). A secondary button may use data-book to "Enquire".
+- Never use a generic "Get a Quote" as the main action for a shop.`
+    : `=== PRIMARY ACTION FOR THIS BUSINESS = BOOKING / RESERVATION ===
+- The hero primary button and any card CTA use  data-book  (opens the reservation modal). Use a SPECIFIC label that fits: "Reserve a Table" (restaurant), "Book a Room" (hotel), "Book Appointment" (clinic / salon / service). Never a generic "Get a Quote".`;
+
   // Role hint by section id (hero/reviews are fixed) OR by dynamic section type.
   const heroStyleHint = {
     'bg-photo': 'Use Photo 1 as a full-bleed BACKGROUND layer (absolute inset-0 -z-10, object-cover) with a dark/tinted gradient overlay on top so the headline stays readable. Headline + buttons sit centered or bottom-left over it.',
@@ -604,21 +619,6 @@ const buildSingleSection = async (component, strategyDesign, contextStr, complet
     'cta-banner': `A single bold call-to-action strip (NOT a grid): a short punchy headline, one line of subcopy, and a prominent data-book button plus a tel: call button. Use the primary/accent colors as a gradient or solid band. Centered, compact vertical padding.`,
     team: `Heading block, then a responsive grid "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" of people/expertise cards (each "h-full flex flex-col items-center text-center"): avatar circle or icon, name/role, one-line bio. ${placeholderNote}`,
   };
-
-  // Category-appropriate primary action (shop cart vs booking) — drives the
-  // hero CTA and product-card buttons so shops get real "Add to Cart" and
-  // hospitality/services get "Reserve/Book".
-  const primaryAction = strategyDesign.primaryAction || 'booking';
-  const commerceId = strategyDesign.__commerceId || 'products';
-  const primaryActionBlock = primaryAction === 'cart'
-    ? `=== PRIMARY ACTION FOR THIS BUSINESS = SHOP / CART (make buying fully work) ===
-- Product / item cards MUST include a working Add-to-Cart button:
-  <button data-cart-add data-name="EXACT PRODUCT NAME" data-price="₹PRICE" data-image="REAL_PHOTO_URL_OR_OMIT" class="...">Add to Cart</button>
-  The page's global runtime stores the cart in localStorage, shows a floating cart with a live count, and a checkout that saves the order — you do NOT build any of that, just add the buttons.
-- The HERO primary button must be <a href="#${commerceId}" ...>Shop Now</a> (scrolls to the products). A secondary button may use data-book to "Enquire".
-- Never use a generic "Get a Quote" as the main action for a shop.`
-    : `=== PRIMARY ACTION FOR THIS BUSINESS = BOOKING / RESERVATION ===
-- The hero primary button and any card CTA use  data-book  (opens the reservation modal). Use a SPECIFIC label that fits: "Reserve a Table" (restaurant), "Book a Room" (hotel), "Book Appointment" (clinic / salon / service). Never a generic "Get a Quote".`;
 
   let roleHint = roleHints[component.id];
   if (!roleHint) {
