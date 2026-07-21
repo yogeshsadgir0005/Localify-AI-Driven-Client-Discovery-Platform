@@ -83,6 +83,18 @@ const GeneratedWebsitePage = () => {
   const isOwner = user && ownerId && user._id === ownerId;
   const canEdit = isOwner && !!pages?.html; 
 
+  if (!isOwner) {
+    return (
+      <iframe
+        key={htmlStr.length}
+        srcDoc={htmlStr}
+        className="h-screen w-full border-0 bg-white"
+        title="AI Generated Website"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+      />
+    );
+  }
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(htmlStr);
