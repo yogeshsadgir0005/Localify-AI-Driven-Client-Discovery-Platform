@@ -3,13 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Maximize2, Monitor, Smartphone, Palette, Copy, Check, Code2, Bug, Save, X, Sparkles, ImagePlus } from 'lucide-react';
 import api, { getErrorMessage } from '../utils/axios';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/authStore';
 
 const GeneratedWebsitePage = () => {
+  const user = useAuthStore(state => state.user);
   const { placeId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [changingTheme, setChangingTheme] = useState(false);
   const [pages, setPages] = useState(null);
+  const [ownerId, setOwnerId] = useState(null);
   const [device, setDevice] = useState('desktop');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [newColor, setNewColor] = useState('#3B82F6');
@@ -27,7 +30,10 @@ const GeneratedWebsitePage = () => {
     const fetchWebsite = async () => {
       try {
         const { data } = await api.get(`/website/${placeId}`);
-        if (data.success) setPages(data.pages);
+        if (data.success) {
+          setPages(data.pages);
+          setOwnerId(data.ownerId);
+        }
       } catch (err) {
         toast.error('Could not load website or it does not exist.');
         navigate(`/business/${placeId}`);
@@ -72,7 +78,10 @@ const GeneratedWebsitePage = () => {
   };
 
   const htmlStr = pages ? buildHtml() : '';
-  const canEdit = !!pages?.html; // only the self-contained HTML format is editable
+  
+  // Only the owner can edit, and only if we have self-contained HTML
+  const isOwner = user && ownerId && user._id === ownerId;
+  const canEdit = isOwner && !!pages?.html; 
 
   const handleCopy = async () => {
     try {

@@ -342,11 +342,7 @@ const App = () => {
             />
             <Route
               path="/business/website/:placeId"
-              element={
-                <ProtectedRoute requireAuth={true}>
-                  <GeneratedWebsitePage />
-                </ProtectedRoute>
-              }
+              element={<GeneratedWebsitePage />}
             />
             <Route
               path="/business/:placeId/generate-website"

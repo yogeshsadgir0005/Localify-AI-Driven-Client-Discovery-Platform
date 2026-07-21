@@ -34,7 +34,7 @@ const getWebsite = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Website not found for this business.' });
     }
 
-    return res.json({ success: true, pages: website.pages, surveyContext: website.surveyContext });
+    return res.json({ success: true, pages: website.pages, surveyContext: website.surveyContext, ownerId: website.ownerId });
   } catch (err) {
     return next(err);
   }
