@@ -32,6 +32,7 @@ import { useAuth } from '../hooks/useAuth';
 import api, { getErrorMessage } from '../utils/axios';
 import WebsiteSurveyModal from '../components/WebsiteSurveyModal';
 import TopUpCreditsModal from '../components/TopUpCreditsModal';
+import { useGenerationStore } from '../store/generationStore';
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
@@ -131,7 +132,10 @@ const BusinessDetailPage = () => {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const { user, refreshProfile } = useAuth();
-  const isFreePlan = !user || user.plan === 'free';
+  // "Free" = anyone NOT on a paid plan (Pro/Max) or admin. Note: a user whose
+  // plan is undefined must count as free, so gate on the paid set explicitly.
+  const isPaidUser = Boolean(user && (user.plan === 'pro' || user.plan === 'max' || (user.roles || []).includes('admin')));
+  const isFreePlan = !isPaidUser;
   
   const isUnhidden = user?.phoneUnhides?.unlockedPlaceIds?.includes(placeId);
   const remainingUnhides = Math.max(0, 3 - (user?.phoneUnhides?.unlockedPlaceIds?.length || 0));
@@ -165,8 +169,28 @@ const BusinessDetailPage = () => {
 
   const handleGenerateWebsite = (surveyData) => {
     setShowWebsiteSurvey(false);
-    navigate(`/business/${placeId}/generate-website`, { state: { survey: surveyData } });
+    navigate(`/business/${placeId}/generate-website`, { state: { survey: surveyData, businessName: business?.name || 'Business' } });
   };
+
+  // Check for active generation (from global store or server)
+  const { activeGenerations, checkStatus: checkGenStatus } = useGenerationStore();
+  const activeGen = activeGenerations[placeId];
+  const isGenerating = activeGen && !activeGen.completed && !activeGen.error;
+  const [serverGenerating, setServerGenerating] = useState(false);
+
+  useEffect(() => {
+    // Also check server for active generation (covers page refresh scenario)
+    if (!isGenerating) {
+      checkGenStatus(placeId).then((status) => {
+        if (status) setServerGenerating(true);
+        else setServerGenerating(false);
+      });
+    } else {
+      setServerGenerating(false);
+    }
+  }, [placeId, isGenerating]);
+
+  const showOngoingButton = isGenerating || serverGenerating;
 
   useEffect(() => {
     let active = true;
@@ -627,18 +651,28 @@ const BusinessDetailPage = () => {
               Generate a stunning, full-featured website for this business in 30 seconds using our state-of-the-art AI. It will use real Google Reviews and adapt to their brand.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => {
-                  if (!user) return toast.error('Please login to generate a website.');
-                  setShowWebsiteSurvey(true);
-                }}
-                disabled={generatingWebsite}
-                className="btn-primary flex items-center justify-center gap-2 flex-1 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
-                <LayoutTemplate className="h-5 w-5 relative z-10" />
-                <span className="relative z-10">{generatingWebsite ? 'Generating...' : (websiteExists ? 'Re-Generate Website' : 'Generate AI Website')}</span>
-              </button>
+              {showOngoingButton ? (
+                <button
+                  onClick={() => navigate(`/business/${placeId}/generate-website`)}
+                  className="btn-primary flex items-center justify-center gap-2 flex-1 relative overflow-hidden"
+                >
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>View Ongoing Generation ({activeGen?.progress || '...'}%)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (!user) return toast.error('Please login to generate a website.');
+                    setShowWebsiteSurvey(true);
+                  }}
+                  disabled={generatingWebsite}
+                  className="btn-primary flex items-center justify-center gap-2 flex-1 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+                  <LayoutTemplate className="h-5 w-5 relative z-10" />
+                  <span className="relative z-10">{generatingWebsite ? 'Generating...' : (websiteExists ? 'Re-Generate Website' : 'Generate AI Website')}</span>
+                </button>
+              )}
 
               {websiteExists && (
                 <button

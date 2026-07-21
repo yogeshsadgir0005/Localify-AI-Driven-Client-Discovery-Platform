@@ -57,8 +57,8 @@ app.use(
   })
 );
 app.use(compression());
-app.use(express.json({ limit: '6mb' })); // allows screenshot data-URLs for AI bug-fix
-app.use(express.urlencoded({ extended: true, limit: '6mb' }));
+app.use(express.json({ limit: '64mb' })); // allows screenshot data-URLs for AI bug-fix
+app.use(express.urlencoded({ extended: true, limit: '64mb' }));
 
 if (!isProd) {
   app.use(morgan('dev'));
@@ -112,8 +112,11 @@ const start = async () => {
     })`);
   });
   
-  // Disable HTTP socket timeout to prevent connection drops during long AI generations
-  server.setTimeout(0);
+  // Increase HTTP socket timeouts to prevent connection drops during long AI generations
+  server.setTimeout(1200000);
+  server.requestTimeout = 1200000;
+  server.headersTimeout = 1200000;
+  server.keepAliveTimeout = 1200000;
 };
 
 // --- Graceful shutdown ---

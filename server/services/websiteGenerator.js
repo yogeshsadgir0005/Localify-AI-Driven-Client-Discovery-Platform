@@ -23,10 +23,10 @@ const PIPELINE_CONFIG = {
     coder: process.env.LLM_MODEL_CODER || 'nvidia/nemotron-3-ultra-550b-a55b',
   },
   timeouts: {
-    global: 900000,     // 15 minutes hard cap
-    planning: 180000,   // 3 minutes per planning call
-    section: 120000,    // 2 minutes per section generation
-    qa: 120000,         // 2 minutes for QA
+    global: 1200000,    // 20 minutes hard cap
+    planning: 600000,   // 10 minutes per planning call
+    section: 600000,    // 10 minutes per section generation
+    qa: 600000,         // 10 minutes for QA
   },
   maxQaRetries: 1,
   promptVersion: '7.0',
@@ -506,7 +506,7 @@ const buildSingleSection = async (component, strategyDesign, contextStr, complet
     onProgress({ 
       status: `Section ${sectionIdx + 1}/${totalSections}`, 
       message: `💻 Building ${component.id}...`, 
-      progress: progressBase 
+      progress: progressBase
     });
   }
 
@@ -1074,8 +1074,6 @@ ${reviewContext || 'No reviews available'}`;
   // Header + footer are deterministic (built after) → never missing.
   // ======================================================================
 
-  if (onProgress) onProgress({ status: 'Phase 2', message: '💻 Designing & building your unique sections...', progress: 20 });
-
   const sd = strategyDesign;
   const biz = { name, category, city, state, phone, address, rating, reviewCount, hours };
 
@@ -1097,13 +1095,20 @@ ${reviewContext || 'No reviews available'}`;
   const reviewsComponent = { id: 'reviews', tag: 'section', type: 'reviews', description: `A compact customer-testimonials strip using the real reviews for ${name}.` };
   const components = [heroComponent, ...dynamicSections, reviewsComponent];
 
+  if (onProgress) onProgress({ status: 'Phase 2', message: '💻 Designing & building your unique sections...', progress: 20, sectionPlan: components.map(c => c.id) });
+
   console.log(`[ai] 🔨 Phase 2: Building ${components.length} sections (${components.map(c => c.id).join(', ')})...`);
 
   const sectionPromises = components.map((comp, i) =>
     measureExecution(`Section: ${comp.id}`,
       () => buildSingleSection(comp, strategyDesign, contextStr, [], onProgress, i, components.length),
       metrics
-    ).then(section => (section && section.html) ? section : null)
+    ).then(section => {
+      if (onProgress && section && section.html) {
+        onProgress({ sectionCompleted: comp.id });
+      }
+      return (section && section.html) ? section : null;
+    })
   );
   const resolvedSections = await Promise.all(sectionPromises);
 

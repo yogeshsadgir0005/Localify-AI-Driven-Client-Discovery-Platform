@@ -18,6 +18,13 @@ const PLAN_LIMITS = {
 // section sets" bug. Only ONE generation per placeId runs at a time.
 const generationsInFlight = new Set();
 
+// Stores live progress state for each active generation so clients can
+// reconnect or check status without the original SSE stream.
+const generationProgress = new Map();
+// Stores SSE subscriber response objects for each placeId so the subscribe
+// endpoint can forward progress events from the generation pipeline.
+const generationSubscribers = new Map();
+
 const getWebsite = async (req, res, next) => {
   try {
     const { placeId } = req.params;
@@ -109,9 +116,38 @@ const generateWebsite = async (req, res, next) => {
     }
 
     const onProgress = (data) => {
+      // Update in-memory progress map for status checks & reconnection
+      if (!data.ping) {
+        const prev = generationProgress.get(placeId) || {};
+        const completedSections = prev.completedSections || [];
+        // Track completed sections
+        if (data.sectionCompleted) {
+          if (!completedSections.includes(data.sectionCompleted)) {
+            completedSections.push(data.sectionCompleted);
+          }
+        }
+        generationProgress.set(placeId, {
+          ...prev,
+          ...data,
+          completedSections,
+          businessName: business.name || 'Business',
+          updatedAt: Date.now(),
+        });
+      }
+
+      // Send to the original POST stream
       if (isStream) {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
-        if (res.flush) res.flush(); // Flush compression buffer
+        if (res.flush) res.flush();
+      }
+
+      // Forward to any SSE subscribers (reconnected clients)
+      const subs = generationSubscribers.get(placeId);
+      if (subs && subs.size > 0) {
+        const payload = `data: ${JSON.stringify(data)}\n\n`;
+        for (const sub of subs) {
+          try { sub.write(payload); if (sub.flush) sub.flush(); } catch {}
+        }
       }
     };
 
@@ -173,7 +209,27 @@ const generateWebsite = async (req, res, next) => {
     } catch (e) {}
 
     if (isStream) {
-      res.write(`data: ${JSON.stringify({ status: 'Done', placeId })}\n\n`);
+      // Mark completion in the progress map; keep it for 30s so late subscribers see it
+      const finalState = generationProgress.get(placeId);
+      if (finalState) {
+        finalState.completed = true;
+        finalState.progress = 100;
+        finalState.status = 'Done';
+        finalState.message = '🚀 Premium website ready!';
+      }
+      // Notify subscribers
+      const donePay = `data: ${JSON.stringify({ status: 'Done', placeId })}\n\n`;
+      const subs = generationSubscribers.get(placeId);
+      if (subs) {
+        for (const sub of subs) {
+          try { sub.write(donePay); sub.end(); } catch {}
+        }
+        generationSubscribers.delete(placeId);
+      }
+      // Clean up progress map after 30 seconds
+      setTimeout(() => generationProgress.delete(placeId), 30000);
+
+      res.write(donePay);
       return res.end();
     }
     return res.json({ success: true, message: 'Website generated successfully!', website: updatedWebsite });
@@ -182,6 +238,16 @@ const generateWebsite = async (req, res, next) => {
     const isStream = req.query.stream === 'true';
     if (isStream) {
       res.write(`data: ${JSON.stringify({ error: 'Server error during generation.' })}\n\n`);
+      // Clean up subscribers on error
+      const errSubs = generationSubscribers.get(req.params.placeId);
+      if (errSubs) {
+        const errPayload = `data: ${JSON.stringify({ error: 'Server error during generation.' })}\n\n`;
+        for (const sub of errSubs) {
+          try { sub.write(errPayload); sub.end(); } catch {}
+        }
+        generationSubscribers.delete(req.params.placeId);
+      }
+      setTimeout(() => generationProgress.delete(req.params.placeId), 5000);
       return res.end();
     }
     return next(err);
@@ -370,5 +436,77 @@ const fixBugs = async (req, res, next) => {
     return next(err);
   }
 };
+/**
+ * GET /api/website/:placeId/generation-status
+ * Returns the current in-flight generation state, or { active: false }.
+ */
+const getGenerationStatus = (req, res) => {
+  const { placeId } = req.params;
+  const state = generationProgress.get(placeId);
+  if (!state || !generationsInFlight.has(placeId)) {
+    return res.json({ active: false });
+  }
+  return res.json({
+    active: true,
+    progress: state.progress || 0,
+    message: state.message || '',
+    status: state.status || '',
+    businessName: state.businessName || '',
+    sectionPlan: state.sectionPlan || [],
+    completedSections: state.completedSections || [],
+    currentSection: state.currentSection || null,
+  });
+};
 
-module.exports = { getWebsite, generateWebsite, changeTheme, saveCode, fixBugs };
+/**
+ * GET /api/website/:placeId/generation-subscribe
+ * SSE endpoint — sends the current state immediately, then streams future updates.
+ * Used when a client navigates back to the generation page mid-generation.
+ */
+const subscribeGeneration = (req, res) => {
+  const { placeId } = req.params;
+
+  if (!generationsInFlight.has(placeId)) {
+    return res.json({ active: false });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Send current state as the first event so the client catches up
+  const state = generationProgress.get(placeId);
+  if (state) {
+    res.write(`data: ${JSON.stringify(state)}\n\n`);
+    if (res.flush) res.flush();
+  }
+
+  // Register this response as a subscriber for future updates
+  if (!generationSubscribers.has(placeId)) {
+    generationSubscribers.set(placeId, new Set());
+  }
+  generationSubscribers.get(placeId).add(res);
+
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`data: ${JSON.stringify({ ping: true })}\n\n`);
+      if (res.flush) res.flush();
+    } catch {
+      clearInterval(heartbeat);
+    }
+  }, 15000);
+
+  // Clean up when client disconnects
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const subs = generationSubscribers.get(placeId);
+    if (subs) {
+      subs.delete(res);
+      if (subs.size === 0) generationSubscribers.delete(placeId);
+    }
+  });
+};
+
+module.exports = { getWebsite, generateWebsite, changeTheme, saveCode, fixBugs, getGenerationStatus, subscribeGeneration };

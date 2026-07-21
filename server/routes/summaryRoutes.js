@@ -5,11 +5,13 @@ const {
   generateReviewInsights,
 } = require('../controllers/summaryController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const requirePaidPlan = require('../middlewares/requirePaidPlan');
 
 const router = express.Router();
 
-router.post('/:placeId', authMiddleware, generateSummary);
-router.post('/:placeId/outreach', authMiddleware, generateOutreach);
-router.post('/:placeId/reviews', authMiddleware, generateReviewInsights);
+// AI insight features are Pro/Max only (gated for both web + app).
+router.post('/:placeId', authMiddleware, requirePaidPlan, generateSummary);
+router.post('/:placeId/outreach', authMiddleware, requirePaidPlan, generateOutreach);
+router.post('/:placeId/reviews', authMiddleware, requirePaidPlan, generateReviewInsights);
 
 module.exports = router;

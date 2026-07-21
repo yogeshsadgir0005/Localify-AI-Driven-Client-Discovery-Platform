@@ -1,8 +1,8 @@
 node_modules/
 dist/
 build/
-coverage/
-.env
+conv
+.everage/
 .env.local
 *.log
 .DS_Store

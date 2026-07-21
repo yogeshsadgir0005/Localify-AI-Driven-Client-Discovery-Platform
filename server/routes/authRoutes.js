@@ -4,6 +4,8 @@ const {
   verifySignupOtp,
   login,
   googleAuth,
+  googleMobileStart,
+  googleMobileCallback,
   forgotPassword,
   verifyResetOtp,
   resetPassword,
@@ -26,6 +28,9 @@ router.post('/register', authLimiter, register);
 router.post('/verify-signup-otp', authLimiter, verifySignupOtp);
 router.post('/login', authLimiter, login);
 router.post('/google', authLimiter, googleAuth);
+// Server-side Google OAuth for the mobile app (works inside Expo Go).
+router.get('/google/mobile-start', googleMobileStart);
+router.get('/google/mobile-callback', googleMobileCallback);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/verify-reset-otp', authLimiter, verifyResetOtp);
 router.post('/reset-password', authLimiter, resetPassword);

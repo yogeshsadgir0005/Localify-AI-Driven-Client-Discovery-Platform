@@ -71,7 +71,7 @@ CRITICAL: Any text outside the JSON structure will cause a system crash. Output 
  * Call the hosted LLM once with built-in retry logic.
  * All calls are limited to a concurrency of 2.
  */
-const callLlm = async (prompt, { timeout = 120000, maxTokens = 16384, system, temperature = 0.4, model, expectJson = true } = {}, retries = 3) => {
+const callLlm = async (prompt, { timeout = 1200000, maxTokens = 16384, system, temperature = 0.4, model, expectJson = true } = {}, retries = 10) => {
   if (!prompt) return null;
 
   return enqueueRequest(async () => {
@@ -160,7 +160,7 @@ const callLlm = async (prompt, { timeout = 120000, maxTokens = 16384, system, te
  * Accepts data: URLs or http(s) URLs. Degrades gracefully to null on any error
  * so callers can proceed text-only. Used by the screenshot bug-fix feature.
  */
-const callLlmVision = async (prompt, imageUrls, { timeout = 60000, maxTokens = 700, model } = {}) => {
+const callLlmVision = async (prompt, imageUrls, { timeout = 600000, maxTokens = 700, model } = {}) => {
   if (!prompt) return null;
   // NVIDIA's inline-image endpoint rejects base64 images larger than ~180KB with
   // a 400. Drop oversized ones up front so we don't fire a doomed request (the

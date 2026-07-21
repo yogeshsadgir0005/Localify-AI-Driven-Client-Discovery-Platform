@@ -3,6 +3,10 @@ const router = express.Router();
 const authMiddleware = require('../middlewares/authMiddleware');
 const websiteController = require('../controllers/websiteController');
 
+// Generation progress endpoints (must be before the /:placeId catch-all)
+router.get('/:placeId/generation-status', authMiddleware, websiteController.getGenerationStatus);
+router.get('/:placeId/generation-subscribe', authMiddleware, websiteController.subscribeGeneration);
+
 // GET /api/website/:placeId
 router.get('/:placeId', websiteController.getWebsite);
 

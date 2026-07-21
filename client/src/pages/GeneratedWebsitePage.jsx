@@ -189,7 +189,7 @@ const GeneratedWebsitePage = () => {
             Back to Localify
           </button>
           <div className="h-4 w-px bg-border" />
-          <span className="font-display text-sm font-bold text-accent">AI Prototype</span>
+          <span className="font-display text-sm font-bold text-accent"></span>
         </div>
 
         <div className="hidden md:flex items-center gap-2 rounded-lg bg-surface-2 p-1">

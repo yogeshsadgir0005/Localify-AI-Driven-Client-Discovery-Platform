@@ -213,6 +213,47 @@ const login = async (req, res, next) => {
 };
 
 /**
+ * Find-or-create a user from a verified Google payload, and link the Google
+ * account to an existing (possibly password) user. Throws { code:'SUSPENDED' }
+ * if the account is deactivated. Shared by the web + mobile Google flows.
+ */
+const upsertGoogleUser = async (payload, req) => {
+  const email = payload.email.toLowerCase();
+  let user = await User.findOne({ email });
+  if (user) {
+    if (!user.googleId) user.googleId = payload.sub;
+    if (!user.avatar && payload.picture) user.avatar = payload.picture;
+    if (!user.emailVerified) user.emailVerified = true;
+    if (!user.isActive) {
+      const e = new Error('Account suspended');
+      e.code = 'SUSPENDED';
+      throw e;
+    }
+  } else {
+    user = new User({
+      name: payload.name || email.split('@')[0],
+      email,
+      googleId: payload.sub,
+      avatar: payload.picture || '',
+      password: null,
+      emailVerified: true,
+    });
+  }
+  user.lastLogin = new Date();
+  await user.save();
+  logEvent(req, 'google_login', { actor: user._id.toString(), actorEmail: user.email });
+  return user;
+};
+
+// The exact, stable redirect URI Google calls back after consent. Must match a
+// URI registered in the Google Cloud console. Derived from PUBLIC_BACKEND_URL
+// (set this to your https backend) so it works from a physical phone.
+const googleMobileRedirectUri = (req) => {
+  const base = (process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+  return `${base}/api/auth/google/mobile-callback`;
+};
+
+/**
  * POST /api/auth/google
  * Body: { credential } — the Google ID token from @react-oauth/google.
  */
@@ -233,9 +274,18 @@ const googleAuth = async (req, res, next) => {
 
     let payload;
     try {
+      // Accept tokens from the web client AND the mobile (iOS/Android) OAuth
+      // clients, all under the same Google project — the mobile app's id_token
+      // carries a platform-specific audience.
+      const audiences = [
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_IOS_CLIENT_ID,
+        process.env.GOOGLE_ANDROID_CLIENT_ID,
+        process.env.GOOGLE_EXPO_CLIENT_ID,
+      ].filter(Boolean);
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: audiences.length === 1 ? audiences[0] : audiences,
       });
       payload = ticket.getPayload();
     } catch (verifyErr) {
@@ -252,38 +302,18 @@ const googleAuth = async (req, res, next) => {
       });
     }
 
-    const email = payload.email.toLowerCase();
-    let user = await User.findOne({ email });
-
-    if (user) {
-      // Link the Google account to an existing (possibly password) user.
-      if (!user.googleId) user.googleId = payload.sub;
-      if (!user.avatar && payload.picture) user.avatar = payload.picture;
-      if (!user.emailVerified) user.emailVerified = true;
-      if (!user.isActive) {
+    let user;
+    try {
+      user = await upsertGoogleUser(payload, req);
+    } catch (e) {
+      if (e.code === 'SUSPENDED') {
         return res.status(403).json({
           success: false,
           message: 'This account has been suspended. Please contact support.',
         });
       }
-    } else {
-      user = new User({
-        name: payload.name || email.split('@')[0],
-        email,
-        googleId: payload.sub,
-        avatar: payload.picture || '',
-        password: null,
-        emailVerified: true, // Google accounts are implicitly verified
-      });
+      throw e;
     }
-
-    user.lastLogin = new Date();
-    await user.save();
-
-    logEvent(req, 'google_login', {
-      actor: user._id.toString(),
-      actorEmail: user.email,
-    });
 
     const token = user.generateJWT();
     return res.json({
@@ -293,6 +323,82 @@ const googleAuth = async (req, res, next) => {
     });
   } catch (err) {
     return next(err);
+  }
+};
+
+/**
+ * GET /api/auth/google/mobile-start?returnUrl=<app deep link>
+ * Kicks off the server-side Google OAuth (authorization-code) flow used by the
+ * mobile app. This flow works inside Expo Go because Google redirects to our
+ * registered HTTPS backend (not the app), and we then bounce back to the app.
+ */
+const googleMobileStart = (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send('Google sign-in is not configured on the server.');
+  }
+  const returnUrl = (req.query.returnUrl || '').toString();
+  if (!returnUrl) return res.status(400).send('Missing returnUrl.');
+
+  const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    googleMobileRedirectUri(req)
+  );
+  const url = client.generateAuthUrl({
+    access_type: 'online',
+    scope: ['openid', 'email', 'profile'],
+    prompt: 'select_account',
+    state: Buffer.from(returnUrl).toString('base64'),
+  });
+  return res.redirect(url);
+};
+
+/**
+ * GET /api/auth/google/mobile-callback?code=...&state=...
+ * Google redirects here after consent. We exchange the code, verify the token,
+ * upsert the user, then redirect back into the app deep link with our JWT.
+ */
+const googleMobileCallback = async (req, res) => {
+  let returnUrl = '';
+  try {
+    returnUrl = Buffer.from((req.query.state || '').toString(), 'base64').toString('utf8');
+  } catch (e) {
+    returnUrl = '';
+  }
+  const bounce = (params) => {
+    if (!returnUrl) return res.status(400).send('Signed in, but the app return URL was missing.');
+    const sep = returnUrl.includes('?') ? '&' : '?';
+    return res.redirect(`${returnUrl}${sep}${params}`);
+  };
+
+  try {
+    const code = (req.query.code || '').toString();
+    if (!code) return bounce('error=' + encodeURIComponent('Google sign-in was cancelled.'));
+
+    const client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      googleMobileRedirectUri(req)
+    );
+    const { tokens } = await client.getToken(code);
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.email_verified) {
+      return bounce('error=' + encodeURIComponent('Google account email is not verified.'));
+    }
+
+    const user = await upsertGoogleUser(payload, req);
+    const token = user.generateJWT();
+    return bounce('token=' + encodeURIComponent(token));
+  } catch (err) {
+    if (err.code === 'SUSPENDED') {
+      return bounce('error=' + encodeURIComponent('This account has been suspended.'));
+    }
+    console.error('[auth] Google mobile callback failed:', err.message);
+    return bounce('error=' + encodeURIComponent('Google sign-in failed. Please try again.'));
   }
 };
 
@@ -817,6 +923,8 @@ module.exports = {
   verifySignupOtp,
   login,
   googleAuth,
+  googleMobileStart,
+  googleMobileCallback,
   forgotPassword,
   verifyResetOtp,
   resetPassword,

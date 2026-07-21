@@ -449,13 +449,12 @@ const LandingPage = () => {
               <p className="text-[11px] text-text-muted mt-1 leading-snug">Automatically checking contact details and business validity.</p>
             </div>
 
-            {/* 7. Center Right (AI Prototypes) */}
             <div 
               className="takeover-hud-card absolute bottom-[35%] right-[22%] card-base bg-surface/70 backdrop-blur-xl border-white/10 p-5 w-full max-w-[15.5rem] opacity-0 translate-y-10 will-change-transform rounded-2xl hidden lg:block animate-float"
               style={{ animationDelay: '2.6s' }}
             >
               <LayoutTemplate className="h-6 w-6 text-primary mb-3" />
-              <h4 className="font-bold text-base text-white">AI Prototypes</h4>
+              <h4 className="font-bold text-base text-white"></h4>
               <p className="text-[11px] text-text-muted mt-1 leading-snug">Generating instant, tailored website prototypes to pitch to local clients.</p>
             </div>
 

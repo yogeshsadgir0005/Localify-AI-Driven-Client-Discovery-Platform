@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Localify",
+    "slug": "localify",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "localify",
+    "splash": {
+      "backgroundColor": "#0D0F14",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.localify.app"
+    },
+    "android": {
+      "package": "com.localify.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0D0F14"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:5000/api"
+    }
+  }
+}
