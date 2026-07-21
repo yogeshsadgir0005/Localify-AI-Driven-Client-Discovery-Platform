@@ -80,7 +80,7 @@ const GeneratedWebsitePage = () => {
   const htmlStr = pages ? buildHtml() : '';
   
   // Only the owner can edit, and only if we have self-contained HTML
-  const isOwner = user && ownerId && user._id === ownerId;
+  const isOwner = user && ownerId && (user.id === ownerId || user._id === ownerId);
   const canEdit = isOwner && !!pages?.html; 
 
   if (!isOwner) {
